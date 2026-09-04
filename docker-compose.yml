@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: agentguard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agentguard
+      POSTGRES_PASSWORD: agentguard_password
+      POSTGRES_DB: agentguard
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: agentguard-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: agentguard-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://agentguard:agentguard_password@postgres:5432/agentguard
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=changeme_secret_key_jwt
+      - API_BASE_URL=http://localhost:8000
+      - CORS_ORIGINS=http://localhost:3000
+      - AGENTGUARD_ENV=development
+    depends_on:
+      - postgres
+      - redis
+
+  frontend:
+    # Frontend service placeholder — will be finalized once Lovable AI export is added to frontend/
+    image: node:18-alpine
+    container_name: agentguard-frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    command: ["sh", "-c", "echo 'Frontend export pending from Lovable AI' && tail -f /dev/null"]
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
