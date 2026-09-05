@@ -56,3 +56,11 @@ class DecisionOutput(BaseModel):
     decision: DecisionEnum
     reason: str
     checks: dict[str, CheckResult]
+
+
+class GuardResponse(BaseModel):
+    """HTTP response shape for POST /guard/check, matching project.md contract."""
+    decision: DecisionEnum
+    request_id: uuid.UUID
+    reason: str
+
