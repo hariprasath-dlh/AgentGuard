@@ -1,0 +1,13 @@
+# .gitleaksignore
+# Each line is a fingerprint (commit:file:rule:line) of a known false positive.
+# Reviewed and approved as non-secrets on 2026-09-13.
+
+# sdk/tests/test_sdk.py:92 — "ag_invalid_nonexistent_key_12345"
+# This is a deliberately malformed/invalid key used in test_authentication_error_malformed_key
+# to exercise the 401 rejection path. It matches no real key format and has never been issued.
+016fdcc4a20e9641b07e0f590a17a39e677f5041:sdk/tests/test_sdk.py:generic-api-key:92
+
+# docs/dashboard-spec.md:55 — "eyJhbGciOiJIUzI1..."
+# This is a truncated JWT placeholder in API documentation (ends in literal "...").
+# It is not a real token; it cannot be decoded or used to authenticate.
+016fdcc4a20e9641b07e0f590a17a39e677f5041:docs/dashboard-spec.md:generic-api-key:55
