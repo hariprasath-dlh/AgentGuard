@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.repositories.auth import APIKeyRepository
+from app.repositories.budget import BudgetRepository
 from app.repositories.registry import AgentRepository
 from app.schemas.auth import RoleEnum
 from app.schemas.registry import (
@@ -78,6 +79,11 @@ def create_agent(
         key_prefix=key_prefix,
         agent_id=agent.id,
     )
+
+    # Provision default budget row (all caps None = unlimited).
+    # PATCH /budgets/{id} requires a pre-existing row — create it here.
+    budget_repo = BudgetRepository(db=db, organization_id=current_user.organization_id)
+    budget_repo.create_default(agent_id=agent.id)
 
     db.commit()
     db.refresh(agent)

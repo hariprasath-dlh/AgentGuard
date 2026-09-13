@@ -1,0 +1,101 @@
+================================================================================
+AGENTGUARD: FRAMEWORK-AGNOSTIC RUNTIME GOVERNANCE DEMONSTRATION
+Timestamp: 2026-09-05T13:20:47.504357+00:00
+Python Executable: C:\Python314\python.exe
+================================================================================
+
+[Provisioning] Verifying demo organization and seeded tools (slug=agentguard-demo)...
+[Provisioning] Demo agent already exists: FrameworkDemoAgent (id=b2bb00ab-53a6-42b9-96bd-760f6d80ece3)
+[Provisioning] Permissions verified (created: 0, existing: 5)
+[Provisioning] Demo API key already exists with prefix: ag_live_demo...
+
+[Server] Backend not responding at http://127.0.0.1:8000. Starting live FastAPI server...
+[Server] Live FastAPI backend successfully started at http://127.0.0.1:8000
+============================================================
+DEMO 1: Custom Python Agent (No Framework)
+============================================================
+
+[CustomAgent] Proposing action: read_customer with params={'customer_id': 'CUST-001'}
+[CustomAgent] -> ALLOWED by AgentGuard (request_id=21077670-d623-408a-9204-65b17389b00b)
+[CustomAgent] -> Reason: All policy checks passed.
+[CustomAgent] -> Tool output: {'status': 'success', 'customer_id': 'CUST-001', 'name': 'Jane Doe', 'email': 'jane.doe@example.com', 'tier': 'enterprise'}
+
+[CustomAgent] Proposing action: delete_database with params={'database': 'prod_users'}
+[CustomAgent] -> BLOCKED by AgentGuard (request_id=e5739ca5-8ae7-44ee-a40b-92187ceff2b1)
+[CustomAgent] -> Reason: Tool 'delete_database' has risk level 'CRITICAL', which is denied by policy.
+
+[CustomAgent] Proposing action: process_refund with params={'customer_id': 'CUST-001', 'amount': 1500.0, 'reason': 'damaged shipment'}
+[CustomAgent] -> PAUSED for Human Approval (request_id=b43e6ffe-dfd3-4854-a4b2-fca265977622)
+[CustomAgent] -> Reason: Action on tool 'process_refund' requires human approval (HITL).
+============================================================
+DEMO 2: LangChain-Style Tool Agent
+============================================================
+
+[LangChainAgent] Tool call requested: read_customer({'customer_id': 'CUST-001'})
+[LangChainAgent] -> AgentGuard: ALLOW (request_id=3ad0c62b-25b8-4d81-83d2-24232e1d9e95)
+[LangChainAgent] -> Reason: All policy checks passed.
+[LangChainAgent] -> Observation: {'status': 'success', 'customer_id': 'CUST-001', 'name': 'Jane Doe', 'email': 'jane.doe@example.com', 'tier': 'enterprise'}
+
+[LangChainAgent] Tool call requested: delete_database({'database': 'prod_users'})
+[LangChainAgent] -> AgentGuard: DENIED (request_id=a8e9dbca-21e3-43ee-b17e-2b7d6330aee9)
+[LangChainAgent] -> Reason: Tool 'delete_database' has risk level 'CRITICAL', which is denied by policy.
+
+[LangChainAgent] Tool call requested: process_refund({'customer_id': 'CUST-001', 'amount': 1500.0, 'reason': 'damaged shipment'})
+[LangChainAgent] -> AgentGuard: PENDING HITL (request_id=aa4e7ca0-d0e4-4247-93c9-6c68c1d7f180)
+[LangChainAgent] -> Reason: Action on tool 'process_refund' requires human approval (HITL).
+============================================================
+DEMO 3: Simulated Agent (Event-Driven State Machine)
+============================================================
+
+[SimulatedAgent] State=PROPOSING | Intent=read_customer params={'customer_id': 'CUST-001'}
+[SimulatedAgent] State=GOVERNANCE_EVALUATION | Consulting AgentGuard...
+[SimulatedAgent] State=EXECUTING | Action ALLOWED (request_id=87bbbcb7-2a38-413a-838d-02d341cf08b5)
+[SimulatedAgent] -> Reason: All policy checks passed.
+[SimulatedAgent] -> Execution result: {'status': 'success', 'customer_id': 'CUST-001', 'name': 'Jane Doe', 'email': 'jane.doe@example.com', 'tier': 'enterprise'}
+
+[SimulatedAgent] State=PROPOSING | Intent=delete_database params={'database': 'prod_users'}
+[SimulatedAgent] State=GOVERNANCE_EVALUATION | Consulting AgentGuard...
+[SimulatedAgent] State=BLOCKED | Action DENIED (request_id=4723f81b-8ea0-4fa6-86db-dec44b311d82)
+[SimulatedAgent] -> Reason: Tool 'delete_database' has risk level 'CRITICAL', which is denied by policy.
+
+[SimulatedAgent] State=PROPOSING | Intent=process_refund params={'customer_id': 'CUST-001', 'amount': 1500.0, 'reason': 'damaged shipment'}
+[SimulatedAgent] State=GOVERNANCE_EVALUATION | Consulting AgentGuard...
+[SimulatedAgent] State=PAUSED_HITL | Action PAUSED for HITL (request_id=a9e84c06-c056-4728-94e2-1db096880da3)
+[SimulatedAgent] -> Reason: Action on tool 'process_refund' requires human approval (HITL).
+
+================================================================================
+CROSS-DEMO CONSISTENCY VERIFICATION
+================================================================================
+Verifying that Custom, LangChain, and FSM agents received identical decisions
+and reasons for the exact same tool calls through the AgentGuard SDK contract.
+
+Tool [1/3]: 'read_customer'
+  Demo 1 (Custom OOP Agent): decision=ALLOW, executed=True, req_id=21077670-d623-408a-9204-65b17389b00b
+  Demo 2 (LangChain Agent):  decision=ALLOW, executed=True, req_id=3ad0c62b-25b8-4d81-83d2-24232e1d9e95
+  Demo 3 (Simulated FSM):    decision=ALLOW, executed=True, req_id=87bbbcb7-2a38-413a-838d-02d341cf08b5
+  Unified Reason: 'All policy checks passed.'
+  [PASS] Consistency check PASSED for tool 'read_customer'
+
+Tool [2/3]: 'delete_database'
+  Demo 1 (Custom OOP Agent): decision=DENY, executed=False, req_id=e5739ca5-8ae7-44ee-a40b-92187ceff2b1
+  Demo 2 (LangChain Agent):  decision=DENY, executed=False, req_id=a8e9dbca-21e3-43ee-b17e-2b7d6330aee9
+  Demo 3 (Simulated FSM):    decision=DENY, executed=False, req_id=4723f81b-8ea0-4fa6-86db-dec44b311d82
+  Unified Reason: 'Tool 'delete_database' has risk level 'CRITICAL', which is denied by policy.'
+  [PASS] Consistency check PASSED for tool 'delete_database'
+
+Tool [3/3]: 'process_refund'
+  Demo 1 (Custom OOP Agent): decision=PENDING, executed=False, req_id=b43e6ffe-dfd3-4854-a4b2-fca265977622
+  Demo 2 (LangChain Agent):  decision=PENDING, executed=False, req_id=aa4e7ca0-d0e4-4247-93c9-6c68c1d7f180
+  Demo 3 (Simulated FSM):    decision=PENDING, executed=False, req_id=a9e84c06-c056-4728-94e2-1db096880da3
+  Unified Reason: 'Action on tool 'process_refund' requires human approval (HITL).'
+  [PASS] Consistency check PASSED for tool 'process_refund'
+
+[PASS] All 9 server-generated request UUIDs are distinct and authentic.
+[PASS] CROSS-DEMO CONSISTENCY PROOF COMPLETE: Contract identical across all 3 agent architectures.
+
+================================================================================
+PHASE 11 DEMONSTRATION COMPLETED SUCCESSFULLY
+Output recorded to: D:\agentguard\demo\demo_output.log
+================================================================================
+
+[Server] Terminating background server process...

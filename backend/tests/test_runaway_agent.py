@@ -30,6 +30,18 @@ from app.services.factory import create_policy_engine
 from app.services.rate_limiter import RedisRateLimitChecker
 
 
+def _redis_available() -> bool:
+    try:
+        client = get_redis_client()
+        client.ping()
+        return True
+    except Exception:
+        return False
+
+
+_REDIS_AVAILABLE = _redis_available()
+
+
 def run_simulation(db: Session, max_requests_limit: int = 10, loop_attempts: int = 30) -> dict:
     """Executes the runaway agent loop and returns execution telemetry."""
     redis_client = get_redis_client()
@@ -115,6 +127,7 @@ def run_simulation(db: Session, max_requests_limit: int = 10, loop_attempts: int
 # Pytest Integration Test
 # ===========================================================================
 
+@pytest.mark.skipif(not _REDIS_AVAILABLE, reason="Redis server is not available")
 def test_runaway_agent_automatically_blocked(db_session: Session):
     """Exit condition test for Phase 6: confirms infinite loop is halted at limit."""
     results = run_simulation(db=db_session, max_requests_limit=10, loop_attempts=25)

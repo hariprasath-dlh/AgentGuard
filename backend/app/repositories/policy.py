@@ -25,12 +25,23 @@ class PolicyRepository(OrgScopedRepository):
             .first()
         )
 
+    def get_by_name(self, name: str) -> Optional[Policy]:
+        return (
+            self._base_query(Policy)
+            .filter(Policy.name == name)
+            .first()
+        )
+
     def list_active(self) -> list[Policy]:
         return (
             self._base_query(Policy)
             .filter(Policy.is_active == True)
             .all()
         )
+
+    def list_all(self) -> list[Policy]:
+        """Return all policies (active and inactive) for the org."""
+        return self._base_query(Policy).all()
 
     def create(
         self,
@@ -50,5 +61,18 @@ class PolicyRepository(OrgScopedRepository):
             is_active=is_active,
         )
         self.db.add(policy)
+        self.db.flush()
+        return policy
+
+    def update(self, policy: Policy, **fields: Any) -> Policy:
+        for key, value in fields.items():
+            if value is not None:
+                setattr(policy, key, value)
+        self.db.flush()
+        return policy
+
+    def soft_delete(self, policy: Policy) -> Policy:
+        """Mark is_active=False. Preserves the row for audit history."""
+        policy.is_active = False
         self.db.flush()
         return policy

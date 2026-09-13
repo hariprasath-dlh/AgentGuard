@@ -45,6 +45,11 @@ class RedisBudgetChecker:
         self.default_session_token_limit = default_session_token_limit
 
     def _get_utc_date(self) -> str:
+        """Return current date in UTC as YYYY-MM-DD.
+
+        Synchronized with Phase 12 dashboard/stats daily boundary (_today_start()),
+        ensuring daily budget reset and dashboard metrics are aligned on UTC midnight.
+        """
         return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     def _session_cost_key(self, agent_id: uuid.UUID) -> str:

@@ -41,7 +41,21 @@ def guard_env(db_session: Session):
     db_session.flush()
 
     # Seed the 5 demo tools for this org
-    seed(db_session, org_slug=org_slug)
+    for tool_def in [
+        {"name": "read_customer", "description": "Read customer profile", "risk_level": "LOW"},
+        {"name": "create_ticket", "description": "Create a support ticket", "risk_level": "LOW"},
+        {"name": "send_email", "description": "Send a transactional email", "risk_level": "MEDIUM"},
+        {"name": "process_refund", "description": "Process a payment refund", "risk_level": "HIGH"},
+        {"name": "delete_database", "description": "Delete database records", "risk_level": "CRITICAL"},
+    ]:
+        t = Tool(
+            organization_id=org.id,
+            name=tool_def["name"],
+            description=tool_def["description"],
+            risk_level=tool_def["risk_level"],
+            is_active=True,
+        )
+        db_session.add(t)
 
     agent = Agent(
         organization_id=org.id,

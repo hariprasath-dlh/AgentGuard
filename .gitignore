@@ -57,3 +57,10 @@ Thumbs.db
 
 # Docker
 *.local
+
+# Database & Credentials
+*.db
+*.sqlite
+*.sqlite3
+demo_env.json
+

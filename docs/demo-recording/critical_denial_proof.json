@@ -1,0 +1,18 @@
+{
+  "result_a_unpermitted": {
+    "guarantee": "Permission Check Enforcement (Missing Permission)",
+    "tool": "delete_database",
+    "decision": "DENY",
+    "request_id": "9deac9fb-b981-4cd6-9997-9a58fad93131",
+    "reason": "Agent 'FinanceAgent' has no permission grant for tool 'delete_database'.",
+    "permission_granted_at_time_of_call": false
+  },
+  "result_b_permitted_critical_override": {
+    "guarantee": "CRITICAL Risk Policy Enforcement (Permission Override Guarantee)",
+    "tool": "delete_database",
+    "decision": "DENY",
+    "request_id": "fcd61713-3d45-49f9-a115-cd6bd601cc6e",
+    "reason": "Tool 'delete_database' has risk level 'CRITICAL', which is denied by policy.",
+    "permission_granted_at_time_of_call": true
+  }
+}

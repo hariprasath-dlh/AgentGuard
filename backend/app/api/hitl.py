@@ -108,7 +108,8 @@ def _check_lazy_expiration(db: Session, hitl: HITLRequest) -> bool:
     """
     if hitl.status == "PENDING" and hitl.expires_at is not None:
         now = datetime.now(timezone.utc)
-        if now >= hitl.expires_at:
+        expires_at = hitl.expires_at if hitl.expires_at.tzinfo else hitl.expires_at.replace(tzinfo=timezone.utc)
+        if now >= expires_at:
             hitl.status = "EXPIRED"
             db.commit()
             return True

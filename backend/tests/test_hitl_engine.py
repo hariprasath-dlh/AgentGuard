@@ -46,6 +46,28 @@ from app.api.hitl import sweep_expired_hitl_requests
 # ---------------------------------------------------------------------------
 # Test Helpers
 # ---------------------------------------------------------------------------
+from unittest.mock import patch as _mock_patch
+from app.services.policy_engine import (
+    PolicyEngine as _PolicyEngine,
+    default_budget_checker as _default_budget_checker,
+    default_rate_limit_checker as _default_rate_limit_checker,
+)
+
+
+def _stub_create_policy_engine(db, redis_client=None):
+    """Stub factory: returns PolicyEngine with pass-through budget/rate-limit checkers."""
+    return _PolicyEngine(
+        db=db,
+        budget_checker=_default_budget_checker,
+        rate_limit_checker=_default_rate_limit_checker,
+    )
+
+
+# Module-level patcher active for the duration of this test module.
+_GUARD_PATCHER = _mock_patch("app.api.guard.create_policy_engine", side_effect=_stub_create_policy_engine)
+_GUARD_PATCHER.start()
+
+
 def _http_client_for_session(session: Session) -> TestClient:
     def override_get_db():
         try:
@@ -55,6 +77,7 @@ def _http_client_for_session(session: Session) -> TestClient:
 
     fastapi_app.dependency_overrides[get_db] = override_get_db
     return TestClient(fastapi_app, raise_server_exceptions=True)
+
 
 
 def _register_and_login(client: TestClient, org_slug: str, role: str = "MANAGER") -> dict:
@@ -81,17 +104,15 @@ def hitl_env(db_session: Session):
     db_session.add(org)
     db_session.flush()
 
-    # Seed demo tools (including process_refund)
+    # Seed demo tools (including process_refund) and FinanceAgent
     seed(db_session, org_slug=org_slug)
 
-    agent = Agent(
-        organization_id=org.id,
-        name="FinanceAgent",
-        description="Autonomous Finance Agent",
-        status="ACTIVE",
+    agent = (
+        db_session.query(Agent)
+        .filter(Agent.organization_id == org.id, Agent.name == "FinanceAgent")
+        .first()
     )
-    db_session.add(agent)
-    db_session.flush()
+    assert agent is not None, "FinanceAgent was not seeded"
 
     raw_key, key_prefix, key_hash = generate_api_key(prefix="ag_agent")
     api_key = APIKey(
@@ -111,13 +132,23 @@ def hitl_env(db_session: Session):
         .first()
     )
     assert refund_tool is not None, "process_refund tool was not seeded"
-    perm = AgentToolPermission(
-        agent_id=agent.id,
-        tool_id=refund_tool.id,
-        organization_id=org.id,
-        is_allowed=True,
+    perm = (
+        db_session.query(AgentToolPermission)
+        .filter(
+            AgentToolPermission.agent_id == agent.id,
+            AgentToolPermission.tool_id == refund_tool.id,
+            AgentToolPermission.organization_id == org.id,
+        )
+        .first()
     )
-    db_session.add(perm)
+    if not perm:
+        perm = AgentToolPermission(
+            agent_id=agent.id,
+            tool_id=refund_tool.id,
+            organization_id=org.id,
+            is_allowed=True,
+        )
+        db_session.add(perm)
     db_session.commit()
 
     return {
@@ -144,7 +175,7 @@ def _create_pending_refund_request(client: TestClient, hitl_env: dict) -> str:
     assert r.status_code == 200, f"guard/check failed: {r.status_code} - {r.text}"
     data = r.json()
     assert data["decision"] == "PENDING"
-    return data["request_id"]
+    return uuid.UUID(data["request_id"])
 
 
 # ===========================================================================
@@ -455,7 +486,7 @@ class TestHITLEngine:
             )
             assert r_guard.status_code == 200
             assert r_guard.json()["decision"] == "PENDING"
-            req_id = r_guard.json()["request_id"]
+            req_id = uuid.UUID(r_guard.json()["request_id"])
 
             hitl = db_session.query(HITLRequest).filter(HITLRequest.tool_request_id == req_id).first()
             mgr_headers = _register_and_login(client, hitl_env["org_slug"], role="MANAGER")

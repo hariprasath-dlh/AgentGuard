@@ -48,6 +48,24 @@ POSTGRES_URL = os.getenv(
 )
 
 
+def _postgres_available() -> bool:
+    try:
+        from sqlalchemy import create_engine as _ce, text as _text
+        e = _ce(POSTGRES_URL, pool_pre_ping=True, connect_args={"connect_timeout": 3})
+        with e.connect() as conn:
+            conn.execute(_text("SELECT 1"))
+        return True
+    except Exception:
+        return False
+
+
+_POSTGRES_AVAILABLE = _postgres_available()
+requires_postgres = pytest.mark.skipif(
+    not _POSTGRES_AVAILABLE,
+    reason="Postgres server not available; skipping Postgres-dependent test",
+)
+
+
 def _make_pg_engine():
     engine = create_engine(POSTGRES_URL, pool_pre_ping=True)
     Base.metadata.create_all(bind=engine)
@@ -78,6 +96,8 @@ def _write_record(session: Session, org_id: uuid.UUID, seq_hint: int = 0, payloa
 
 @pytest.fixture(scope="module")
 def pg_engine():
+    if not _postgres_available():
+        pytest.skip("PostgreSQL database is not available")
     engine = _make_pg_engine()
     yield engine
 
@@ -137,6 +157,7 @@ def _register_and_login(client: TestClient, role: str = "ADMIN") -> dict:
 # ===========================================================================
 # Hash chain logic tests
 # ===========================================================================
+@requires_postgres
 class TestAuditVaultHashChain:
     def test_empty_chain_is_valid(self, pg_session):
         """1. Organisation with no audit records reports VALID."""
@@ -275,6 +296,7 @@ class TestAuditVaultHashChain:
 # ===========================================================================
 # Concurrency test - separate DB connections per thread
 # ===========================================================================
+@requires_postgres
 class TestAuditVaultConcurrency:
     def test_concurrent_writes_produce_gapless_sequence(self, pg_engine):
         """9. 10 concurrent threads, each with its OWN session/connection, produce
@@ -346,6 +368,7 @@ class TestAuditVaultConcurrency:
 # ===========================================================================
 # Scale tests
 # ===========================================================================
+@requires_postgres
 class TestAuditVaultScale:
     def test_thousand_record_chain_valid(self, pg_engine):
         """10. 1,000 sequential records: chain VALID, duration measured."""
@@ -445,6 +468,7 @@ class TestAuditVaultScale:
 # ===========================================================================
 # RBAC tests
 # ===========================================================================
+@requires_postgres
 class TestAuditVaultRBAC:
     def test_auditor_can_list_audit_logs(self, pg_session):
         """11a. AUDITOR role can GET /audit."""

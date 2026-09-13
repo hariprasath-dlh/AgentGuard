@@ -27,6 +27,22 @@ from app.services.factory import create_policy_engine
 from app.services.rate_limiter import RedisRateLimitChecker
 
 
+def _redis_available() -> bool:
+    try:
+        client = get_redis_client()
+        client.ping()
+        return True
+    except Exception:
+        return False
+
+
+pytestmark = pytest.mark.skipif(
+    not _redis_available(),
+    reason="Redis server is not available; skipping all Redis-dependent tests",
+)
+
+
+
 @pytest.fixture
 def redis_client():
     """Real Redis client fixture for integration testing."""

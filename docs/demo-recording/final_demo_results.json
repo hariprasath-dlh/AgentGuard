@@ -1,0 +1,55 @@
+{
+  "env": {
+    "org_id": "aa2578ee-a04d-4c10-bcbe-da4daa018601",
+    "agent_id": "4e9e4607-aca7-4ba8-aa12-1f5bb4b138a6",
+    "api_key": "ag_agent_umg1hlhcjxvOtKMNfht9tzKEjQzQiRtpTi8vSpgrWR8"
+  },
+  "approval": {
+    "hitl_id": "c5c30b03-c12b-4668-9c2d-782ba5b4269d",
+    "tool_request_id": "2c2b6de6-c3ea-462f-8b4b-4b549f6eebc0",
+    "status": "APPROVED",
+    "output_payload": {
+      "refund_id": "REF-8ED8AEED",
+      "amount": 499.0,
+      "customer_id": "cust_9921",
+      "reason": "Customer cancellation request",
+      "status": "completed",
+      "processed_at": "2026-09-12T12:36:12.856269+00:00"
+    },
+    "review_notes": "Approved VIP refund per customer agreement"
+  },
+  "phase2_denial": {
+    "tool": "delete_database",
+    "decision": "DENY",
+    "request_id": "4f0de261-5823-4b50-83b0-ab4a88fce9a5",
+    "reason": "Agent 'FinanceAgent' has no permission grant for tool 'delete_database'."
+  },
+  "audit": {
+    "status": "VALID",
+    "total_records": 42,
+    "message": "Tamper-evident cryptographic hash chain verified successfully. Zero tampering detected across 42 records.",
+    "broken_record_id": null,
+    "broken_sequence_number": null,
+    "error_type": null,
+    "details": null,
+    "early_exit_note": null,
+    "duration_ms": 187.227
+  },
+  "dashboard_stats": {
+    "total_agents": 2,
+    "total_tools": 6,
+    "requests_today": 9,
+    "allowed_today": 4,
+    "blocked_today": 2,
+    "pending_today": 0,
+    "total_spend_today": "0.0",
+    "budget_utilization": [
+      {
+        "agent_id": "4e9e4607-aca7-4ba8-aa12-1f5bb4b138a6",
+        "agent_name": "FinanceAgent",
+        "current_spend": 0.0,
+        "max_budget_per_day": 999.0
+      }
+    ]
+  }
+}

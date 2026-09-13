@@ -1,0 +1,20 @@
+{
+  "step1": {
+    "tool": "read_customer",
+    "decision": "ALLOW",
+    "request_id": "eb0c054f-54bb-4a8a-871f-571db758b664",
+    "reason": "All policy checks passed."
+  },
+  "step2": {
+    "tool": "send_email",
+    "decision": "ALLOW",
+    "request_id": "9b61daeb-24e2-4657-8f17-a04fe98694a0",
+    "reason": "All policy checks passed."
+  },
+  "step3": {
+    "tool": "process_refund",
+    "decision": "PENDING",
+    "request_id": "7806ad22-3136-42b2-88d5-7761784ccdd8",
+    "reason": "Action on tool 'process_refund' requires human approval (HITL)."
+  }
+}

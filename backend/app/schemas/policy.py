@@ -64,3 +64,48 @@ class GuardResponse(BaseModel):
     request_id: uuid.UUID
     reason: str
 
+
+# ---------------------------------------------------------------------------
+# Phase 12: Policy CRUD schemas
+# ---------------------------------------------------------------------------
+
+from datetime import datetime  # noqa: E402
+
+
+class PolicyCreateRequest(BaseModel):
+    """Create a new policy rule set.
+
+    `rules` must be a non-empty dict. The policy engine reads at minimum one of:
+      - allowed_actions: list[str]
+      - blocked_actions: list[str]
+      - risk_thresholds: dict mapping risk level -> decision
+    Malformed rules are rejected at the API boundary.
+    """
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=1000)
+    policy_type: str = Field(..., min_length=1, max_length=50)
+    rules: dict[str, Any] = Field(..., description="Non-empty rules dict")
+    is_active: bool = True
+
+
+class PolicyUpdateRequest(BaseModel):
+    """PATCH semantics — all fields optional."""
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=1000)
+    policy_type: Optional[str] = Field(None, min_length=1, max_length=50)
+    rules: Optional[dict[str, Any]] = None
+    is_active: Optional[bool] = None
+
+
+class PolicyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    organization_id: uuid.UUID
+    name: str
+    description: Optional[str] = None
+    policy_type: str
+    rules: dict[str, Any]
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
