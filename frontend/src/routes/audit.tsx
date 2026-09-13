@@ -54,7 +54,7 @@ function ChainVisual({
 }) {
   const reduce = useReducedMotion();
   const links = logs.slice(0, 12);
-  const brokenAt = result && !result.is_valid ? (result.broken_at_sequence ?? null) : null;
+  const brokenAt = result && result.status !== "VALID" ? (result.broken_sequence_number ?? null) : null;
 
   return (
     <div className="relative px-6 py-8">
@@ -77,7 +77,7 @@ function ChainVisual({
           links.map((log, i) => {
             const broken = brokenAt != null && log.sequence_number === brokenAt;
             const beforeBreak = brokenAt == null || log.sequence_number < brokenAt;
-            const verified = !!result && (result.is_valid || (result as Record<string, unknown>).status === "VALID");
+            const verified = !!result && result.status === "VALID";
             const tone = broken
               ? "border-deny/60 bg-deny/12 text-deny"
               : verified || (result && beforeBreak)
@@ -145,7 +145,7 @@ function AuditPage() {
       setTimeout(() => {
         setSweeping(false);
         setResult(data);
-        if (data.is_valid) toast.success("Chain verified — no tampering detected");
+        if (data.status === "VALID") toast.success("Chain verified — no tampering detected");
         else toast.error("Chain integrity check failed");
       }, 1400);
     },
@@ -173,7 +173,7 @@ function AuditPage() {
         <AnimatePresence mode="wait">
           {result ? (
             (() => {
-              const isChainValid = Boolean(result.is_valid || (result as Record<string, unknown>).status === "VALID");
+              const isChainValid = result.status === "VALID";
               return (
                 <motion.div
                   key={isChainValid ? "valid" : "invalid"}
@@ -191,7 +191,7 @@ function AuditPage() {
                     <span className="text-sm text-foreground">
                       {isChainValid
                         ? `${result.records_verified ?? result.total_records ?? logs.length} records verified`
-                        : `Chain breaks at record #${result.broken_at_sequence ?? "unknown"}`}
+                        : `Chain breaks at record #${result.broken_sequence_number ?? "unknown"}`}
                     </span>
                     {result.verified_at ? (
                       <span className="font-mono text-xs text-muted-foreground">
