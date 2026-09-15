@@ -1,5 +1,31 @@
+import json
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+
+class _JsonFormatter(logging.Formatter):
+    """Emit each log record as a single JSON object on one line.
+
+    All structured fields passed via logger.info(json.dumps({...})) are
+    preserved verbatim. The formatter adds 'level' and 'logger' envelope
+    fields so log aggregators can filter by severity.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:  # type: ignore[override]
+        try:
+            payload = json.loads(record.getMessage())
+        except (ValueError, TypeError):
+            payload = {"message": record.getMessage()}
+        payload.setdefault("level", record.levelname)
+        payload.setdefault("logger", record.name)
+        return json.dumps(payload)
+
+
+# Configure once at import time — gunicorn/uvicorn inherit this.
+_handler = logging.StreamHandler()
+_handler.setFormatter(_JsonFormatter())
+logging.basicConfig(level=logging.INFO, handlers=[_handler], force=True)
 
 from app.api.agents import router as agents_router
 from app.api.audit import router as audit_router

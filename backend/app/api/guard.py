@@ -14,6 +14,7 @@ CRITICAL INVARIANTS:
 5. Missing handlers are recorded explicitly: An ALLOW on an unhandled tool logs
    'skipped_no_handler' so audit trails never overstate execution.
 """
+import json
 import logging
 import time
 import uuid
@@ -188,7 +189,19 @@ def guard_check(
                 except Exception:
                     db.rollback()
 
-    # 6. Return standard response contract
+    # 6. Structured audit log line (Phase 17 — Observability)
+    # Emitted on every request: ALLOW, DENY, and PENDING paths.
+    logger.info(json.dumps({
+        "event": "guard_check",
+        "request_id": str(server_request_id),
+        "agent_id": str(caller_id),
+        "organization_id": str(agent.organization_id),
+        "tool_name": request_data.tool_name,
+        "decision": decision_output.decision.value,
+        "latency_ms": round((time.time() - start_time) * 1000, 2),
+    }))
+
+    # 7. Return standard response contract
     return GuardResponse(
         decision=decision_output.decision,
         request_id=server_request_id,

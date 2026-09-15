@@ -9,5 +9,6 @@ pyjwt
 passlib
 bcrypt
 pytest
+pytest-cov
 httpx
 alembic

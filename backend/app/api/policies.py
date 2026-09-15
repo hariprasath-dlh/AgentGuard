@@ -40,12 +40,12 @@ def _validate_rules(rules: dict) -> None:
     """Raise 422 if rules is empty or has no recognised top-level key."""
     if not rules:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Policy `rules` must be a non-empty dict",
         )
     if not _VALID_RULE_KEYS.intersection(rules.keys()):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=(
                 f"Policy `rules` must contain at least one recognised key: "
                 f"{sorted(_VALID_RULE_KEYS)}"
