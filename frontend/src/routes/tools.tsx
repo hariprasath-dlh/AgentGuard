@@ -189,6 +189,7 @@ function ToolsPage() {
                         </td>
                         <td className="px-5 py-3.5">
                           <Switch
+                            aria-label={`Toggle active status for ${tool.name}`}
                             checked={tool.is_active !== false}
                             disabled={!mayMutate || updateTool.isPending}
                             onCheckedChange={(checked) =>

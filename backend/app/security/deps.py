@@ -24,6 +24,8 @@ class AuthenticatedUser:
     role: str
     is_active: bool
     full_name: Optional[str] = None
+    organization_name: Optional[str] = None
+    organization_slug: Optional[str] = None
 
 
 @dataclass
@@ -82,6 +84,8 @@ def get_current_user(
         )
     
     role_name = user.role.name if user.role else (payload.get("role") or "DEVELOPER")
+    org_name = user.organization.name if user.organization else None
+    org_slug = user.organization.slug if user.organization else None
 
     return AuthenticatedUser(
         id=user.id,
@@ -90,6 +94,8 @@ def get_current_user(
         role=role_name,
         is_active=user.is_active,
         full_name=user.full_name,
+        organization_name=org_name,
+        organization_slug=org_slug,
     )
 
 

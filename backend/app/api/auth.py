@@ -98,6 +98,8 @@ def register(request: UserRegisterRequest, db: Session = Depends(get_db)):
     return UserResponse(
         id=user.id,
         organization_id=user.organization_id,
+        organization_name=org.name,
+        organization_slug=org.slug,
         role_id=user.role_id,
         role=role_name,
         email=user.email,
@@ -168,6 +170,8 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
     return UserResponse(
         id=current_user.id,
         organization_id=current_user.organization_id,
+        organization_name=current_user.organization_name,
+        organization_slug=current_user.organization_slug,
         role=current_user.role,
         email=current_user.email,
         full_name=current_user.full_name,

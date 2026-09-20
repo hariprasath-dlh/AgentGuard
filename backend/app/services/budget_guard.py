@@ -181,7 +181,8 @@ class RedisBudgetChecker:
 
             # Synchronize DB row if present
             if budget_row and cost > 0:
-                budget_row.current_spend = budget_row.current_spend + Decimal(str(cost))
+                current_spend_dec = Decimal(str(budget_row.current_spend)) if budget_row.current_spend is not None else Decimal("0.00")
+                budget_row.current_spend = current_spend_dec + Decimal(str(cost))
                 db.flush()
 
             return True, None

@@ -52,8 +52,10 @@ export const Route = createFileRoute("/agents")({
   ),
 });
 
-function money(v?: number | null) {
-  return v == null ? "Unlimited" : `$${v.toFixed(2)}`;
+function money(v?: number | string | null) {
+  if (v == null || v === "") return "Unlimited";
+  const num = Number(v);
+  return isNaN(num) ? "Unlimited" : `$${num.toFixed(2)}`;
 }
 
 function AgentsPage() {
@@ -167,10 +169,10 @@ function AgentsPage() {
                         <StatusBadge value={agent.status ?? "ACTIVE"} />
                       </td>
                       <td className="px-5 py-3.5 tabular-nums text-muted-foreground">
-                        ${(budget?.current_daily_cost ?? 0).toFixed(2)}
+                        ${Number(budget?.current_spend ?? 0).toFixed(2)}
                       </td>
                       <td className="px-5 py-3.5 tabular-nums text-muted-foreground">
-                        {money(budget?.max_cost_per_day)}
+                        {money(budget?.max_budget_per_day)}
                       </td>
                       <td className="px-5 py-3.5 text-right whitespace-nowrap">
                         {mayMutate ? (

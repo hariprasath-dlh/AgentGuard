@@ -268,3 +268,62 @@ class TestAgentGuardSDK:
             assert res_pending.request_id is not None
         finally:
             client.close()
+
+    def test_context_manager_usage(self, test_env):
+        """9. Context manager (__enter__ / __exit__) closes client properly."""
+        with AgentGuard(
+            api_key=test_env["api_key"],
+            base_url=test_env["base_url"],
+            agent_id=test_env["agent_id"],
+        ) as client:
+            res = client.guard(tool="read_customer", parameters={"customer_id": "CUST-CM"})
+            assert res.allowed is True
+
+    def test_server_error_raises_agentguard_server_error(self, test_env):
+        """10. HTTP 500 error raises AgentGuardServerError."""
+        client = AgentGuard(
+            api_key=test_env["api_key"],
+            base_url=test_env["base_url"],
+            agent_id=test_env["agent_id"],
+        )
+        try:
+            mock_resp = httpx.Response(500, json={"detail": "Internal Database Crash"}, request=httpx.Request("POST", "http://test"))
+            with patch.object(client._client, "post", return_value=mock_resp):
+                with pytest.raises(AgentGuardServerError) as exc_info:
+                    client.guard(tool="read_customer")
+                assert exc_info.value.status_code == 500
+                assert "Database Crash" in str(exc_info.value)
+        finally:
+            client.close()
+
+    def test_invalid_json_raises_server_error(self, test_env):
+        """11. HTTP 200 with non-JSON body raises AgentGuardServerError."""
+        client = AgentGuard(
+            api_key=test_env["api_key"],
+            base_url=test_env["base_url"],
+            agent_id=test_env["agent_id"],
+        )
+        try:
+            mock_resp = httpx.Response(200, text="not-json-content", request=httpx.Request("POST", "http://test"))
+            with patch.object(client._client, "post", return_value=mock_resp):
+                with pytest.raises(AgentGuardServerError):
+                    client.guard(tool="read_customer")
+        finally:
+            client.close()
+
+    def test_unknown_decision_raises_server_error(self, test_env):
+        """12. HTTP 200 with unknown decision raises AgentGuardServerError."""
+        client = AgentGuard(
+            api_key=test_env["api_key"],
+            base_url=test_env["base_url"],
+            agent_id=test_env["agent_id"],
+        )
+        try:
+            mock_resp = httpx.Response(200, json={"decision": "UNKNOWN_DECISION_TYPE"}, request=httpx.Request("POST", "http://test"))
+            with patch.object(client._client, "post", return_value=mock_resp):
+                with pytest.raises(AgentGuardServerError) as exc_info:
+                    client.guard(tool="read_customer")
+                assert "UNKNOWN_DECISION_TYPE" in str(exc_info.value)
+        finally:
+            client.close()
+

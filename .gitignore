@@ -64,3 +64,12 @@ Thumbs.db
 *.sqlite3
 demo_env.json
 
+# Test artifacts & Coverage
+coverage/
+*.coverage*
+coverage*.json
+playwright-report/
+test-results/
+docs/performance/*.json
+docs/performance/*.txt
+

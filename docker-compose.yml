@@ -38,6 +38,8 @@ services:
       - API_BASE_URL=http://localhost:8000
       - CORS_ORIGINS=http://localhost:3000
       - AGENTGUARD_ENV=development
+    volumes:
+      - ./backend:/app
     depends_on:
       - postgres
       - redis

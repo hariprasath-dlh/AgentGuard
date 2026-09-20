@@ -157,12 +157,12 @@ function DashboardPage() {
             />
           ) : (
             <div className="space-y-5 px-5 py-5">
-              {utilization.map((u) => {
+              {utilization.map((u, i) => {
                 const pct = Math.min(100, Math.round(u.utilization_percent ?? 0));
                 const bar =
                   pct >= 90 ? "bg-deny" : pct >= 70 ? "bg-risk-high" : "bg-teal";
                 return (
-                  <div key={u.agent_id}>
+                  <div key={`${u.agent_id || "agent"}-${i}`}>
                     <div className="flex items-baseline justify-between gap-4 text-sm">
                       <span className="truncate text-foreground">
                         {u.agent_name || u.agent_id}
@@ -223,12 +223,12 @@ function DashboardPage() {
           ) : (
             <ul className="divide-y divide-border">
               <AnimatePresence initial={false}>
-                {rows.map((row) => {
+                {rows.map((row, i) => {
                   const ts = row.timestamp || row.created_at;
                   const expanded = open === row.id;
                   return (
                     <motion.li
-                      key={row.id}
+                      key={`${row.id || "row"}-${i}`}
                       layout
                       initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}

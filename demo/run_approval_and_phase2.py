@@ -20,13 +20,15 @@ if PROJECT_ROOT not in sys.path:
 from demo.run_demo_scenario import run_agent_phase_2
 
 API_BASE_URL = "http://localhost:8000/api/v1"
+ORG_SLUG = "agentguard-demo"
 
 def approve_pending_request_as_manager():
     # 1. Login as MANAGER
     print("\n[Manager] Logging in as manager@agentguard-demo.local...")
     r = httpx.post(f"{API_BASE_URL}/auth/login", json={
         "email": "manager@agentguard-demo.local",
-        "password": "DemoManager1!"
+        "password": "DemoManager1!",
+        "organization_slug": ORG_SLUG,
     })
     assert r.status_code == 200, f"Manager login failed: {r.text}"
     token = r.json()["access_token"]
@@ -71,7 +73,8 @@ def verify_audit_vault_as_auditor():
     print("\n[Auditor] Logging in as auditor@agentguard-demo.local...")
     r = httpx.post(f"{API_BASE_URL}/auth/login", json={
         "email": "auditor@agentguard-demo.local",
-        "password": "DemoAuditor1!"
+        "password": "DemoAuditor1!",
+        "organization_slug": ORG_SLUG,
     })
     assert r.status_code == 200, f"Auditor login failed: {r.text}"
     token = r.json()["access_token"]
@@ -102,7 +105,8 @@ def get_dashboard_summary():
     print("\n[Dashboard] Fetching live dashboard statistics...")
     r = httpx.post(f"{API_BASE_URL}/auth/login", json={
         "email": "admin@agentguard-demo.local",
-        "password": "DemoAdmin1!"
+        "password": "DemoAdmin1!",
+        "organization_slug": ORG_SLUG,
     })
     assert r.status_code == 200
     token = r.json()["access_token"]

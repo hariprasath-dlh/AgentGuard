@@ -251,6 +251,7 @@ function PoliciesPage() {
                     </td>
                     <td className="px-5 py-3.5">
                       <Switch
+                        aria-label={`Toggle active status for ${policy.name}`}
                         checked={policy.is_active !== false}
                         disabled={!mayMutate || toggleMutation.isPending}
                         onCheckedChange={(checked) =>

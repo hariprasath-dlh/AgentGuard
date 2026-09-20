@@ -2,19 +2,19 @@
   "step1": {
     "tool": "read_customer",
     "decision": "ALLOW",
-    "request_id": "eb0c054f-54bb-4a8a-871f-571db758b664",
+    "request_id": "c3c3b331-e570-4ced-a00f-911d313ac384",
     "reason": "All policy checks passed."
   },
   "step2": {
     "tool": "send_email",
     "decision": "ALLOW",
-    "request_id": "9b61daeb-24e2-4657-8f17-a04fe98694a0",
+    "request_id": "5ab974c0-bb97-410c-8b36-6c4bee777ece",
     "reason": "All policy checks passed."
   },
   "step3": {
     "tool": "process_refund",
     "decision": "PENDING",
-    "request_id": "7806ad22-3136-42b2-88d5-7761784ccdd8",
+    "request_id": "5cf226bd-4482-4c5a-80e7-d054ae32a821",
     "reason": "Action on tool 'process_refund' requires human approval (HITL)."
   }
 }

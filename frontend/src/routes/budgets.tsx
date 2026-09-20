@@ -52,8 +52,8 @@ export const Route = createFileRoute("/budgets")({
 type CapForm = {
   max_requests_per_minute: string;
   max_requests_per_day: string;
-  max_cost_per_session: string;
-  max_cost_per_day: string;
+  max_budget_per_session: string;
+  max_budget_per_day: string;
 };
 
 function toForm(b: Budget): CapForm {
@@ -61,8 +61,8 @@ function toForm(b: Budget): CapForm {
   return {
     max_requests_per_minute: s(b.max_requests_per_minute),
     max_requests_per_day: s(b.max_requests_per_day),
-    max_cost_per_session: s(b.max_cost_per_session),
-    max_cost_per_day: s(b.max_cost_per_day),
+    max_budget_per_session: s(b.max_budget_per_session),
+    max_budget_per_day: s(b.max_budget_per_day),
   };
 }
 
@@ -72,13 +72,17 @@ function toBody(form: CapForm): Record<string, number | null> {
   return {
     max_requests_per_minute: n(form.max_requests_per_minute),
     max_requests_per_day: n(form.max_requests_per_day),
-    max_cost_per_session: n(form.max_cost_per_session),
-    max_cost_per_day: n(form.max_cost_per_day),
+    max_budget_per_session: n(form.max_budget_per_session),
+    max_budget_per_day: n(form.max_budget_per_day),
   };
 }
 
-const cap = (v?: number | null, prefix = "") =>
-  v == null ? "Unlimited" : `${prefix}${prefix ? v.toFixed(2) : v}`;
+const cap = (v?: number | string | null, prefix = "") => {
+  if (v == null || v === "") return "Unlimited";
+  const num = Number(v);
+  if (isNaN(num)) return "Unlimited";
+  return `${prefix}${prefix ? num.toFixed(2) : num}`;
+};
 
 function BudgetsPage() {
   const { user } = useAuth();
@@ -153,13 +157,13 @@ function BudgetsPage() {
                       {cap(b.max_requests_per_day)}
                     </td>
                     <td className="px-5 py-3.5 tabular-nums text-muted-foreground">
-                      {cap(b.max_cost_per_session, "$")}
+                      {cap(b.max_budget_per_session, "$")}
                     </td>
                     <td className="px-5 py-3.5 tabular-nums text-muted-foreground">
-                      {cap(b.max_cost_per_day, "$")}
+                      {cap(b.max_budget_per_day, "$")}
                     </td>
                     <td className="px-5 py-3.5 tabular-nums text-foreground">
-                      ${(b.current_daily_cost ?? 0).toFixed(2)}
+                      ${Number(b.current_spend ?? 0).toFixed(2)}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       {mayMutate ? (
@@ -232,8 +236,8 @@ function BudgetsPage() {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={form.max_cost_per_session}
-                  onChange={(e) => setForm({ ...form, max_cost_per_session: e.target.value })}
+                  value={form.max_budget_per_session}
+                  onChange={(e) => setForm({ ...form, max_budget_per_session: e.target.value })}
                   placeholder="Unlimited"
                 />
               </div>
@@ -244,8 +248,8 @@ function BudgetsPage() {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={form.max_cost_per_day}
-                  onChange={(e) => setForm({ ...form, max_cost_per_day: e.target.value })}
+                  value={form.max_budget_per_day}
+                  onChange={(e) => setForm({ ...form, max_budget_per_day: e.target.value })}
                   placeholder="Unlimited"
                 />
               </div>

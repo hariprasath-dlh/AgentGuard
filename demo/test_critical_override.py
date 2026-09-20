@@ -33,7 +33,8 @@ def run_critical_override_proof():
     print("[1/5] Logging in as Admin...")
     r_auth = httpx.post(f"{API_BASE_URL}/auth/login", json={
         "email": "admin@agentguard-demo.local",
-        "password": "DemoAdmin1!"
+        "password": "DemoAdmin1!",
+        "organization_slug": ORG_SLUG,
     })
     assert r_auth.status_code == 200
     token = r_auth.json()["access_token"]

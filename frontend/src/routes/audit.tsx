@@ -57,7 +57,7 @@ function ChainVisual({
   const brokenAt = result && result.status !== "VALID" ? (result.broken_sequence_number ?? null) : null;
 
   return (
-    <div className="relative px-6 py-8">
+    <div className="relative px-4 sm:px-6 py-6 sm:py-8 overflow-hidden">
       <div className="relative flex flex-col gap-3">
         {/* Sweep beam */}
         {sweeping && !reduce ? (
@@ -103,15 +103,15 @@ function ChainVisual({
                   }
                   transition={{ duration: 0.5 }}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors",
+                    "flex flex-wrap items-center gap-2 sm:gap-3 rounded-lg border px-3 py-2 transition-colors min-w-0 overflow-hidden",
                     tone,
                   )}
                 >
                   <span className="font-mono text-[11px] tabular-nums opacity-80">
                     #{log.sequence_number}
                   </span>
-                  <span className="mono-chip">{(log.current_hash ?? "").slice(0, 16)}…</span>
-                  <span className="text-xs">
+                  <span className="mono-chip max-w-[130px] truncate">{(log.current_hash ?? "").slice(0, 16)}…</span>
+                  <span className="truncate text-xs">
                     {broken ? "chain broken at this record" : (log.event_type ?? "record")}
                   </span>
                 </motion.div>
