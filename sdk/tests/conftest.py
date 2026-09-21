@@ -16,6 +16,7 @@ import uvicorn
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.core.config import settings
 from app.core.database import Base
 from app.core.seed import seed
 from app.main import app as backend_app
@@ -28,7 +29,7 @@ from app.security.api_key import generate_api_key
 
 TEST_DB_URL = os.getenv(
     "TEST_DATABASE_URL",
-    os.getenv("DATABASE_URL", "postgresql://agentguard:agentguard_password@localhost:5432/agentguard"),
+    settings.DATABASE_URL,
 )
 TEST_SERVER_HOST = "127.0.0.1"
 TEST_SERVER_PORT = 8088
@@ -77,7 +78,8 @@ def live_backend_server() -> Generator[str, None, None]:
 
 @pytest.fixture(scope="session")
 def engine():
-    test_engine = create_engine(TEST_DB_URL)
+    connect_args = {"check_same_thread": False} if TEST_DB_URL.startswith("sqlite") else {}
+    test_engine = create_engine(TEST_DB_URL, connect_args=connect_args)
     Base.metadata.create_all(bind=test_engine)
     return test_engine
 
