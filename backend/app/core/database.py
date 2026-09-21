@@ -18,6 +18,13 @@ engine = create_engine(
 # Models must already be imported (via app.models) before this runs.
 # The conditional import is deferred to avoid circular imports at module load time.
 if settings.DATABASE_URL.startswith("sqlite"):
+    import logging
+    _log = logging.getLogger("app.core.database")
+    _log.warning(
+        "CRITICAL WARNING: AgentGuard is running on SQLite. SQLite does NOT support row-level locking "
+        "(SELECT ... FOR UPDATE is a silent no-op). The audit vault cannot guarantee gapless sequence "
+        "concurrency across multi-threaded writes on SQLite. Use PostgreSQL in production!"
+    )
     from app.models import (  # noqa: F401 — side-effect: registers tables on Base
         organization, role, user, agent, tool, permission,
         policy, budget, tool_request, hitl_request, audit_log, api_key

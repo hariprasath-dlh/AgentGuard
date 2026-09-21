@@ -63,6 +63,18 @@ def test_alembic_migration_on_empty_db():
             "alembic_version",
         }
         assert expected_tables.issubset(tables), f"Missing tables: {expected_tables - tables}"
+
+        # Test downgrade to base
+        command.downgrade(alembic_cfg, "base")
+        inspector_after_down = inspect(engine)
+        tables_after_down = set(inspector_after_down.get_table_names())
+        assert len(tables_after_down - {"alembic_version"}) == 0, f"Tables not dropped: {tables_after_down}"
+
+        # Test re-upgrade to head
+        command.upgrade(alembic_cfg, "head")
+        inspector_after_reup = inspect(engine)
+        tables_after_reup = set(inspector_after_reup.get_table_names())
+        assert expected_tables.issubset(tables_after_reup), f"Missing tables after re-upgrade: {expected_tables - tables_after_reup}"
     finally:
         if engine is not None:
             engine.dispose()

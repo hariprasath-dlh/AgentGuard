@@ -112,6 +112,13 @@ def record_audit_log(
         audit_log_id = uuid.uuid4()
 
     # 1. Acquire organization-scoped row lock to serialize sequence and hash generation
+    bind = db.get_bind()
+    if bind and bind.dialect.name == "sqlite":
+        logger.warning(
+            "AUDIT_VAULT_CONCURRENCY_WARNING: record_audit_log called on SQLite. "
+            "SELECT ... FOR UPDATE is a silent no-op on SQLite. "
+            "PostgreSQL is required for concurrent gapless sequence guarantees."
+        )
     db.query(Organization.id).filter(Organization.id == organization_id).with_for_update().first()
 
     # 2. Query the immediately preceding audit log for this organization
