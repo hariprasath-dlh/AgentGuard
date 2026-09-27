@@ -5,6 +5,21 @@ communicating over real TCP sockets to test real HTTP behavior, real network
 timeouts, and real database records in PostgreSQL.
 """
 import os
+
+TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
+if not TEST_DB_URL:
+    raise RuntimeError(
+        "SDK tests require TEST_DATABASE_URL to be explicitly set to a PostgreSQL database. "
+        "Example: TEST_DATABASE_URL=postgresql://agentguard:agentguard_password@localhost:5432/agentguard"
+    )
+if TEST_DB_URL.startswith("sqlite"):
+    raise RuntimeError(
+        "SDK tests must run against PostgreSQL, not SQLite. "
+        "Set TEST_DATABASE_URL=postgresql://agentguard:agentguard_password@localhost:5432/agentguard"
+    )
+
+os.environ["DATABASE_URL"] = TEST_DB_URL
+
 import threading
 import time
 import uuid
@@ -17,6 +32,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
+settings.DATABASE_URL = TEST_DB_URL
+
+import app.core.database as db_module
+db_module.engine = create_engine(TEST_DB_URL, pool_pre_ping=True)
+db_module.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_module.engine)
+
 from app.core.database import Base
 from app.core.seed import seed
 from app.main import app as backend_app
@@ -27,10 +48,6 @@ from app.models.permission import AgentToolPermission
 from app.models.tool import Tool
 from app.security.api_key import generate_api_key
 
-TEST_DB_URL = os.getenv(
-    "TEST_DATABASE_URL",
-    settings.DATABASE_URL,
-)
 TEST_SERVER_HOST = "127.0.0.1"
 TEST_SERVER_PORT = 8088
 TEST_BASE_URL = f"http://{TEST_SERVER_HOST}:{TEST_SERVER_PORT}/api/v1"
@@ -78,8 +95,7 @@ def live_backend_server() -> Generator[str, None, None]:
 
 @pytest.fixture(scope="session")
 def engine():
-    connect_args = {"check_same_thread": False} if TEST_DB_URL.startswith("sqlite") else {}
-    test_engine = create_engine(TEST_DB_URL, connect_args=connect_args)
+    test_engine = create_engine(TEST_DB_URL, pool_pre_ping=True)
     Base.metadata.create_all(bind=test_engine)
     return test_engine
 
@@ -97,7 +113,7 @@ def db_session(engine) -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def test_env(db_session: Session, live_backend_server: str) -> dict:
+def test_env(db_session: Session, live_backend_server: str) -> Generator[dict, None, None]:
     """Set up test organization, agent, active API key, and seeded demo tools."""
     org_slug = f"sdk-org-{uuid.uuid4().hex[:6]}"
     org = Organization(name="SDK Test Org", slug=org_slug)
@@ -145,11 +161,35 @@ def test_env(db_session: Session, live_backend_server: str) -> dict:
 
     db_session.commit()
 
-    return {
-        "org": org,
-        "agent": agent,
-        "api_key": raw_key,
-        "base_url": live_backend_server,
-        "org_id": org.id,
-        "agent_id": agent.id,
-    }
+    try:
+        yield {
+            "org": org,
+            "agent": agent,
+            "api_key": raw_key,
+            "base_url": live_backend_server,
+            "org_id": org.id,
+            "agent_id": agent.id,
+        }
+    finally:
+        from app.models.hitl_request import HITLRequest
+        from app.models.tool_request import ToolRequest
+        from app.models.audit_log import AuditLog
+        from app.models.budget import Budget
+        from app.models.role import Role
+        from app.models.user import User
+
+        try:
+            db_session.query(HITLRequest).filter(HITLRequest.organization_id == org.id).delete()
+            db_session.query(ToolRequest).filter(ToolRequest.organization_id == org.id).delete()
+            db_session.query(AuditLog).filter(AuditLog.organization_id == org.id).delete()
+            db_session.query(Budget).filter(Budget.organization_id == org.id).delete()
+            db_session.query(AgentToolPermission).filter(AgentToolPermission.organization_id == org.id).delete()
+            db_session.query(APIKey).filter(APIKey.organization_id == org.id).delete()
+            db_session.query(Agent).filter(Agent.organization_id == org.id).delete()
+            db_session.query(Tool).filter(Tool.organization_id == org.id).delete()
+            db_session.query(User).filter(User.organization_id == org.id).delete()
+            db_session.query(Role).filter(Role.organization_id == org.id).delete()
+            db_session.delete(org)
+            db_session.commit()
+        except Exception:
+            db_session.rollback()

@@ -1,20 +1,38 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agentguard-sdk"
+name = "agentguard-governance-sdk"
 dynamic = ["version"]
-description = "Developer SDK for AgentGuard runtime governance layer"
+description = "Developer SDK for AgentGuard runtime governance and policy enforcement layer"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.9"
 authors = [
     { name = "AgentGuard Team" }
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Security",
 ]
 dependencies = [
     "httpx>=0.24.0",
     "pydantic>=2.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/agentguard/agentguard"
+Documentation = "https://github.com/agentguard/agentguard/tree/main/sdk"
+"Bug Tracker" = "https://github.com/agentguard/agentguard/issues"
 
 [tool.setuptools.dynamic]
 version = { attr = "agentguard.__version__" }

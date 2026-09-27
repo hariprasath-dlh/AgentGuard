@@ -1,4 +1,4 @@
-# agentguard-sdk
+# agentguard-governance-sdk
 
 Official Python Developer SDK for the **AgentGuard** runtime governance and policy enforcement layer.
 
@@ -9,12 +9,19 @@ AgentGuard intercepts proposed AI agent tool calls before dispatch, evaluates th
 ## Installation
 
 ```bash
-pip install agentguard-sdk
+pip install agentguard-governance-sdk
 ```
 
 **Requirements:** Python 3.9+ with `httpx` and `pydantic`.
 
----
+### Local Development Installation
+
+If working on the SDK source code directly from this repository:
+
+```bash
+pip install -e .
+```
+
 
 ## Core Usage
 

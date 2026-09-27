@@ -1,22 +1,26 @@
 # Python SDK Reference
-
-`agentguard-sdk` is a lightweight Python package that routes an AI agent's tool calls through the AgentGuard Core Engine for governance evaluation.
-
+ 
+`agentguard-governance-sdk` is a lightweight Python package that routes an AI agent's tool calls through the AgentGuard Core Engine for governance evaluation.
+ 
 The SDK never contains policy logic. It only calls the `POST /guard/check` API and translates the response into either a `GuardResult` (for ALLOW) or a structured exception (for DENY/PENDING).
-
+ 
 ---
-
+ 
 ## Installation
-
-From the repository root:
-
+ 
+From PyPI:
+ 
+```bash
+pip install agentguard-governance-sdk
+```
+ 
+For local development from the repository root:
+ 
 ```bash
 cd sdk
 pip install -e .
 ```
-
-This installs `agentguard-sdk` version 0.1.0 in editable mode.
-
+ 
 **Dependencies** (specified in `pyproject.toml`):
 - `httpx >= 0.24.0`
 - `pydantic >= 2.0.0`

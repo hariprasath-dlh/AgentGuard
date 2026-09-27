@@ -38,17 +38,17 @@ The system is **framework-agnostic** — it speaks plain JSON over HTTP, so it w
 AgentGuard consists of three components:
 
 ```
-┌──────────────────┐       ┌──────────────────────────┐       ┌────────────────────┐
-│  Component B     │       │  Component A              │       │  Component C        │
-│  Python SDK      │──────▶│  Core Engine (FastAPI)    │◀──────│  Control Plane      │
-│  agentguard-sdk  │ HTTP  │  Policy Engine + Audit    │ HTTP  │  (TanStack/React)   │
-│  pip install     │       │  PostgreSQL + Redis       │       │  Web Dashboard      │
-└──────────────────┘       └──────────────────────────┘       └────────────────────┘
+┌────────────────────────────────┐       ┌──────────────────────────┐       ┌────────────────────┐
+│  Component B                   │       │  Component A              │       │  Component C        │
+│  Python SDK                    │──────▶│  Core Engine (FastAPI)    │◀──────│  Control Plane      │
+│  agentguard-governance-sdk     │ HTTP  │  Policy Engine + Audit    │ HTTP  │  (TanStack/React)   │
+│  pip install                   │       │  PostgreSQL + Redis       │       │  Web Dashboard      │
+└────────────────────────────────┘       └──────────────────────────┘       └────────────────────┘
 ```
 
 **Component A — Core Engine (Backend API):** FastAPI microservice. The "bouncer" that intercepts JSON tool-call payloads, evaluates them through an 11-step deterministic policy pipeline, and returns ALLOW / DENY / PENDING decisions. This is the only component that talks to PostgreSQL and Redis directly.
 
-**Component B — Python SDK:** Lightweight `agentguard-sdk` package (`pip install`). Provides a `client.guard(...)` method that routes tool calls through the Core Engine. The SDK never contains policy logic — it only calls the API and interprets the response.
+**Component B — Python SDK:** Lightweight `agentguard-governance-sdk` package (`pip install agentguard-governance-sdk`). Provides a `client.guard(...)` method that routes tool calls through the Core Engine. The SDK never contains policy logic — it only calls the API and interprets the response.
 
 **Component C — Control Plane (Web Dashboard):** TanStack Start / React / TypeScript web application. Shows live activity feeds, HITL approval queue, agent/tool/policy/budget management, and an Audit Vault viewer with one-click chain verification.
 
@@ -96,7 +96,7 @@ Every tool call is evaluated through this deterministic pipeline in strict order
 | Cache & Rate Limiting | Redis 7 (sorted sets for sliding windows) |
 | Auth | JWT (PyJWT), bcrypt password hashing, API key authentication |
 | Audit | SHA-256 hash chaining with canonical JSON serialization |
-| SDK | Python, httpx, Pydantic — `agentguard-sdk` package |
+| SDK | Python, httpx, Pydantic — `agentguard-governance-sdk` package |
 | Frontend | TanStack Start, React 19, TypeScript, Tailwind CSS, Radix UI |
 | E2E Testing | Playwright (Chromium, Firefox, Mobile Chromium), axe-core |
 | Infrastructure | Docker Compose (local), free-tier managed services (production) |
@@ -198,8 +198,13 @@ npm run dev
 
 The Control Plane is now live at `http://localhost:3000`.
 
-### 6. Install the SDK (Optional)
+### 6. Install the SDK
 
+```bash
+pip install agentguard-governance-sdk
+```
+
+For local development from source:
 ```bash
 cd ../sdk
 pip install -e .

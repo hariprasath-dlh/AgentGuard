@@ -39,29 +39,35 @@ from tests.conftest import register_user, login_user, auth_headers
 @pytest.fixture
 def security_setup(client: TestClient, db_session: Session):
     """Sets up Org Alpha (with Admin, Dev, Security users) and Org Beta (with Admin)."""
+    uid = uuid.uuid4().hex[:6]
+    email_admin_a = f"admin_{uid}@alpha.com"
+    email_dev_a = f"dev_{uid}@alpha.com"
+    email_sec_a = f"sec_{uid}@alpha.com"
+    email_admin_b = f"admin_{uid}@beta.com"
+
     # Register Admin Alpha (creates Org Alpha)
-    res_admin, slug_a = register_user(client, "admin@alpha.com", "Password123!", role="ADMIN")
+    res_admin, slug_a = register_user(client, email_admin_a, "Password123!", role="ADMIN")
     assert res_admin.status_code == 201, f"Reg Admin failed: {res_admin.text}"
-    token_admin_a = login_user(client, "admin@alpha.com", "Password123!", slug_a).json()["access_token"]
+    token_admin_a = login_user(client, email_admin_a, "Password123!", slug_a).json()["access_token"]
     
     # Register Dev Alpha in Org Alpha
-    res_dev, _ = register_user(client, "dev@alpha.com", "Password123!", slug=slug_a, role="DEVELOPER")
+    res_dev, _ = register_user(client, email_dev_a, "Password123!", slug=slug_a, role="DEVELOPER")
     assert res_dev.status_code == 201, f"Reg Dev failed: {res_dev.text}"
-    token_dev_a = login_user(client, "dev@alpha.com", "Password123!", slug_a).json()["access_token"]
+    token_dev_a = login_user(client, email_dev_a, "Password123!", slug_a).json()["access_token"]
 
     # Register Security Alpha in Org Alpha
-    res_sec, _ = register_user(client, "sec@alpha.com", "Password123!", slug=slug_a, role="SECURITY")
+    res_sec, _ = register_user(client, email_sec_a, "Password123!", slug=slug_a, role="SECURITY")
     assert res_sec.status_code == 201, f"Reg Sec failed: {res_sec.text}"
-    token_sec_a = login_user(client, "sec@alpha.com", "Password123!", slug_a).json()["access_token"]
+    token_sec_a = login_user(client, email_sec_a, "Password123!", slug_a).json()["access_token"]
 
     # Register Admin Beta (creates Org Beta)
-    res_beta, slug_b = register_user(client, "admin@beta.com", "Password123!", role="ADMIN")
+    res_beta, slug_b = register_user(client, email_admin_b, "Password123!", role="ADMIN")
     assert res_beta.status_code == 201, f"Reg Admin Beta failed: {res_beta.text}"
-    token_admin_b = login_user(client, "admin@beta.com", "Password123!", slug_b).json()["access_token"]
+    token_admin_b = login_user(client, email_admin_b, "Password123!", slug_b).json()["access_token"]
 
     # Get Org Alpha DB models
     org_a = db_session.query(Organization).filter_by(slug=slug_a).first()
-    admin_a_user = db_session.query(User).filter_by(email="admin@alpha.com").first()
+    admin_a_user = db_session.query(User).filter_by(email=email_admin_a).first()
 
     # Create Agent and Tools for Org Alpha
     agent_a = Agent(id=uuid.uuid4(), organization_id=org_a.id, name="AlphaAgent", status="ACTIVE")

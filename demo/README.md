@@ -2,7 +2,7 @@
 
 This directory contains the concrete proof that **AgentGuard is truly framework-agnostic**.
 
-AgentGuard does not depend on any specific agent framework, execution loop, or orchestration graph. Three entirely different agent architectures—written in different programming paradigms—govern identical tool calls using the same `agentguard-sdk` client against the same `/guard/check` gateway.
+AgentGuard does not depend on any specific agent framework, execution loop, or orchestration graph. Three entirely different agent architectures—written in different programming paradigms—govern identical tool calls using the same `agentguard-governance-sdk` client against the same `/guard/check` gateway.
 
 ---
 
@@ -58,9 +58,9 @@ Every single invocation resulted in a unique, authentic server-generated UUID (9
    ```bash
    docker ps
    ```
-2. Ensure dependencies and `agentguard-sdk` are installed in your environment:
+2. Ensure dependencies and `agentguard-governance-sdk` are installed in your environment:
    ```bash
-   pip install -e sdk/
+   pip install agentguard-governance-sdk
    pip install -r backend/requirements.txt
    ```
 

@@ -165,15 +165,16 @@ def seed(db: Session, org_slug: str = DEMO_ORG_SLUG) -> dict:
     # 3. Ensure demo users exist for each role
     # ------------------------------------------------------------------
     for user_def in DEMO_USERS:
+        email = user_def["email"] if org_slug == DEMO_ORG_SLUG else f"{user_def['role'].lower()}@{org_slug}.local"
         existing_user = (
             db.query(User)
-            .filter(User.email == user_def["email"], User.organization_id == org.id)
+            .filter(User.email == email, User.organization_id == org.id)
             .first()
         )
         if not existing_user:
             user = User(
                 organization_id=org.id,
-                email=user_def["email"],
+                email=email,
                 hashed_password=hash_password(user_def["password"]),
                 full_name=user_def["full_name"],
                 role_id=roles_by_name[user_def["role"]].id,
@@ -182,10 +183,10 @@ def seed(db: Session, org_slug: str = DEMO_ORG_SLUG) -> dict:
             db.add(user)
             db.flush()
             results["users_created"] += 1
-            log.info(f"Created demo user: {user_def['email']} ({user_def['role']})")
+            log.info(f"Created demo user: {email} ({user_def['role']})")
         else:
             results["users_existing"] += 1
-            log.info(f"Demo user already exists: {user_def['email']}")
+            log.info(f"Demo user already exists: {email}")
 
     # ------------------------------------------------------------------
     # 4. Seed the five demo tools (idempotent)

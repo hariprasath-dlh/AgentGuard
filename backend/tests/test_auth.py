@@ -153,14 +153,14 @@ class TestRegister:
         resp, _ = register_user(client, f"dup@{slug}.io", slug=slug)
         assert resp.status_code == 409
 
-    def test_same_email_different_org_allowed(self, client):
+    def test_same_email_different_org_rejected(self, client):
         slug1 = make_unique_slug()
         slug2 = make_unique_slug()
         r1, _ = register_user(client, "shared@email.com", slug=slug1)
         r2, _ = register_user(client, "shared@email.com", slug=slug2)
         assert r1.status_code == 201
-        assert r2.status_code == 201
-        assert r1.json()["organization_id"] != r2.json()["organization_id"]
+        assert r2.status_code == 409
+        assert "Email already registered" in r2.json()["detail"]
 
     def test_weak_password_rejected(self, client):
         resp = client.post("/api/v1/auth/register", json={

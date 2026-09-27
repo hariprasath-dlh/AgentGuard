@@ -46,12 +46,13 @@ def get_or_create_role(
     return role
 
 
-def get_user_by_email(db: Session, email: str, organization_id: uuid.UUID) -> Optional[User]:
-    return (
-        db.query(User)
-        .filter(User.email == email, User.organization_id == organization_id)
-        .first()
-    )
+def get_user_by_email(
+    db: Session, email: str, organization_id: Optional[uuid.UUID] = None
+) -> Optional[User]:
+    query = db.query(User).filter(User.email == email.strip().lower())
+    if organization_id is not None:
+        query = query.filter(User.organization_id == organization_id)
+    return query.first()
 
 
 def get_user_by_id(db: Session, user_id: uuid.UUID) -> Optional[User]:
@@ -63,14 +64,16 @@ def create_user(
     *,
     organization_id: uuid.UUID,
     email: str,
-    password: str,
+    password: Optional[str] = None,
+    hashed_password: Optional[str] = None,
     full_name: Optional[str] = None,
     role_id: Optional[uuid.UUID] = None,
 ) -> User:
+    pwd_hash = hashed_password or (hash_password(password) if password else None)
     user = User(
         organization_id=organization_id,
-        email=email,
-        hashed_password=hash_password(password),
+        email=email.strip().lower(),
+        hashed_password=pwd_hash,
         full_name=full_name,
         role_id=role_id,
         is_active=True,

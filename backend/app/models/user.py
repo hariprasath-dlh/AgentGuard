@@ -28,14 +28,10 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         nullable=True,
         index=True,
     )
-    email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    hashed_password: Mapped[typing.Optional[str]] = mapped_column(String(255), nullable=True)
     full_name: Mapped[typing.Optional[str]] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("organization_id", "email", name="uq_users_org_email"),
-    )
 
     # Relationships
     organization: Mapped["Organization"] = relationship("Organization", back_populates="users")

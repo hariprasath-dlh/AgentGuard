@@ -3,6 +3,7 @@ uvicorn[standard]
 pydantic
 sqlalchemy
 psycopg2-binary
+psycopg[binary]
 asyncpg
 redis
 pyjwt
@@ -12,3 +13,5 @@ pytest
 pytest-cov
 httpx
 alembic
+google-auth
+requests

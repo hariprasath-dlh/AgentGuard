@@ -58,7 +58,11 @@ class UserLoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    expires_in: int  # in seconds
+    expires_in: int
+
+
+class OAuthExchangeRequest(BaseModel):
+    code: str = Field(..., min_length=1, description="One-time opaque OAuth exchange code")  # in seconds
 
 
 class UserResponse(BaseModel):

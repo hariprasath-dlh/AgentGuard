@@ -47,12 +47,12 @@ AgentGuard is a hybrid B2B SaaS product made of three components:
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        Component B                                  │
-│                    Python SDK (agentguard-sdk)                       │
+│              Python SDK (agentguard-governance-sdk)                 │
 │                                                                     │
 │   AgentGuard(api_key=...) → client.guard(tool=..., params=...)     │
 │   → HTTP POST /guard/check → raises Denied/Pending or returns OK   │
 │                                                                     │
-│   Installed via: pip install -e ./sdk                               │
+│   Installed via: pip install agentguard-governance-sdk              │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
