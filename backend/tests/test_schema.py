@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 from alembic import command
 from alembic.config import Config
 from app.models import (

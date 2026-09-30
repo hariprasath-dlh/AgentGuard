@@ -14,7 +14,7 @@ import uuid
 
 import pytest
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 from app.core.seed import DEMO_TOOLS, seed
 from app.models.tool import Tool

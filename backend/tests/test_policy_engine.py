@@ -16,7 +16,7 @@ import uuid
 
 import pytest
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 from app.models.agent import Agent
 from app.models.organization import Organization
 from app.models.permission import AgentToolPermission

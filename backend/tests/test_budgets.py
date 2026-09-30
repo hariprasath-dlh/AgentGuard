@@ -13,7 +13,7 @@ import uuid
 
 import pytest
 
-pytestmark = pytest.mark.unit
+pytestmark = pytest.mark.integration
 
 from tests.conftest import auth_headers, login_user, make_unique_slug, register_user
 

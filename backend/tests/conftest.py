@@ -1,11 +1,8 @@
 """Pytest configuration for AgentGuard backend tests.
 
-Uses SQLite in-memory by default (fast, no external deps).
-Set TEST_DATABASE_URL env var to a real postgres URL for accurate dialect testing.
-
-The key threading fix: SQLite connections must be created with
-check_same_thread=False because FastAPI's TestClient runs endpoints in
-worker threads (via anyio), while the session is created on the main thread.
+Requires PostgreSQL via TEST_DATABASE_URL env var.
+Silent SQLite fallback is permanently disabled to prevent false passes
+caused by dialect, locking, and constraint differences.
 
 Redis dependency: Tests that specifically test Redis behaviour (test_redis_guards,
 test_runaway_agent) require a live Redis server and will skip automatically when
@@ -50,7 +47,7 @@ requires_redis = pytest.mark.skipif(
 
 
 # ---------------------------------------------------------------------------
-# SQLite FK enforcement (no-op for non-SQLite; safe to run always)
+# SQLite FK enforcement (no-op for non-SQLite; safe to retain)
 # ---------------------------------------------------------------------------
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
@@ -64,16 +61,36 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 
 
 # ---------------------------------------------------------------------------
-# Engine fixture
+# Engine fixture — fail-loud PostgreSQL requirement (NO silent SQLite fallback)
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="session")
 def engine():
-    url = os.getenv("TEST_DATABASE_URL", "sqlite:///:memory:")
-    connect_args = {}
+    url = os.getenv("TEST_DATABASE_URL")
+    if not url:
+        raise RuntimeError(
+            "TEST_DATABASE_URL is not set. All database-backed tests require a real PostgreSQL database.\n"
+            "Silent SQLite fallback has been permanently disabled.\n"
+            "Start PostgreSQL (e.g. via Docker or local service) and set TEST_DATABASE_URL:\n"
+            "Example: export TEST_DATABASE_URL='postgresql://agentguard:agentguard_password@localhost:5432/agentguard_test'"
+        )
     if url.startswith("sqlite"):
-        connect_args = {"check_same_thread": False}
+        raise RuntimeError(
+            f"TEST_DATABASE_URL ('{url}') is an SQLite database URL.\n"
+            "SQLite is forbidden for AgentGuard database tests due to dialect, locking, and constraint differences.\n"
+            "Set TEST_DATABASE_URL to a valid PostgreSQL database URL."
+        )
 
-    test_engine = create_engine(url, connect_args=connect_args)
+    try:
+        test_engine = create_engine(url, pool_pre_ping=True)
+        with test_engine.connect() as conn:
+            from sqlalchemy import text
+            conn.execute(text("SELECT 1"))
+    except Exception as exc:
+        raise RuntimeError(
+            f"TEST_DATABASE_URL is set to '{url}', but the database is unreachable: {exc}\n"
+            "Please ensure the PostgreSQL server is running and accessible."
+        ) from exc
+
     Base.metadata.create_all(bind=test_engine)
     yield test_engine
     Base.metadata.drop_all(bind=test_engine)
