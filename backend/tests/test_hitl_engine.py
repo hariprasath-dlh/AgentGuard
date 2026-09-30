@@ -25,6 +25,8 @@ from unittest.mock import patch
 from unittest.mock import patch as _mock_patch
 
 import pytest
+
+pytestmark = pytest.mark.integration
 from app.api.hitl import sweep_expired_hitl_requests
 from app.core.database import get_db
 from app.core.seed import seed

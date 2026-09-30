@@ -16,6 +16,10 @@ shared engine fixture). SQLite is also used when TEST_DATABASE_URL is not set.
 
 from datetime import UTC
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 from tests.conftest import auth_headers, login_user, make_unique_slug, register_user
 
 # ---------------------------------------------------------------------------

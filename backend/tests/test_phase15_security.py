@@ -14,6 +14,8 @@ import uuid
 import app.models  # noqa: F401
 import jwt
 import pytest
+
+pytestmark = pytest.mark.unit
 from app.core.config import settings
 from app.models.agent import Agent
 from app.models.hitl_request import HITLRequest

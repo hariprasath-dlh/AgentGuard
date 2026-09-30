@@ -63,6 +63,8 @@ requires_postgres = pytest.mark.skipif(
     reason="Postgres server not available; skipping Postgres-dependent test",
 )
 
+pytestmark = pytest.mark.integration
+
 
 def _make_pg_engine():
     engine = create_engine(POSTGRES_URL, pool_pre_ping=True)

@@ -122,50 +122,69 @@ jobs:
         run: alembic upgrade head
         working-directory: backend
 
-      - name: Run backend tests with coverage
+      - name: Run UNIT tests with coverage (threshold >= 80%)
         run: |
-          PYTHONPATH=. pytest tests/ \
+          PYTHONPATH=. pytest tests/ -m unit \
             --cov=app \
-            --cov-report=json:coverage.json \
+            --cov-report=json:coverage-unit.json \
             --cov-report=term-missing \
             -v
         working-directory: backend
 
-      - name: Enforce coverage gate (overall >= 80%)
+      - name: Enforce UNIT coverage gate (>= 80%)
         run: |
           python - <<'PYEOF'
           import json, sys
 
-          with open("coverage.json") as f:
+          with open("coverage-unit.json") as f:
               data = json.load(f)
 
           total = data["totals"]["percent_covered"]
-          print(f"Overall coverage: {total:.1f}%")
+          print(f"Unit test coverage: {total:.1f}%")
 
           if total < 80:
-              print(f"FAIL: Coverage {total:.1f}% is below the required 80% threshold.")
+              print(f"FAIL: Unit coverage {total:.1f}% is below the required 80% threshold.")
               sys.exit(1)
 
-          # Integration gate: audit_vault, redis_guards, and policy_engine must
-          # have real coverage data (proves they were NOT skipped over SQLite)
-          files = data.get("files", {})
-          integration_keys = [
-              k for k in files
-              if any(x in k for x in ["audit_vault", "redis", "policy_engine"])
-          ]
-          if not integration_keys:
-              print("FAIL: No coverage data for integration modules. Were real Postgres/Redis tests skipped?")
-              sys.exit(1)
-
-          print(f"Coverage gate PASSED ({total:.1f}% >= 80%, integration modules covered)")
+          print(f"PASS: Unit coverage gate ({total:.1f}% >= 80%)")
           PYEOF
         working-directory: backend
 
-      - name: Upload coverage report
+      - name: Run INTEGRATION tests with coverage (threshold >= 60%)
+        run: |
+          PYTHONPATH=. pytest tests/ -m integration \
+            --cov=app \
+            --cov-report=json:coverage-integration.json \
+            --cov-report=term-missing \
+            -v
+        working-directory: backend
+
+      - name: Enforce INTEGRATION coverage gate (>= 60%)
+        run: |
+          python - <<'PYEOF'
+          import json, sys
+
+          with open("coverage-integration.json") as f:
+              data = json.load(f)
+
+          total = data["totals"]["percent_covered"]
+          print(f"Integration test coverage: {total:.1f}%")
+
+          if total < 60:
+              print(f"FAIL: Integration coverage {total:.1f}% is below the required 60% threshold.")
+              sys.exit(1)
+
+          print(f"PASS: Integration coverage gate ({total:.1f}% >= 60%)")
+          PYEOF
+        working-directory: backend
+
+      - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
-          path: backend/coverage.json
+          path: |
+            backend/coverage-unit.json
+            backend/coverage-integration.json
 
   # ──────────────────────────────────────────────────────────────────
   # 4. SDK test suite - same real Postgres + Redis

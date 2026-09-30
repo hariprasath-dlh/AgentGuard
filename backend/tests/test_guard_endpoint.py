@@ -17,6 +17,8 @@ import uuid
 from unittest.mock import patch
 
 import pytest
+
+pytestmark = pytest.mark.integration
 from app.models.agent import Agent
 from app.models.api_key import APIKey
 from app.models.audit_log import AuditLog

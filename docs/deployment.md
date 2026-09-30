@@ -315,7 +315,7 @@ The full `docker compose up` also starts the backend and a frontend placeholder,
 
 These items are not yet fully automated:
 
-1. **No CI/CD pipeline** — deployments are manual. A GitHub Actions workflow that builds, tests, and deploys on push to `main` does not exist yet.
+1. **CI exists; CD does not** — A GitHub Actions CI pipeline (`.github/workflows/ci.yml`) runs on every push and PR to `main`, enforcing lint, TypeScript typecheck, backend tests against real Postgres and Redis service containers (with separate unit ≥80% and integration ≥60% coverage gates), frontend build, Docker image build, and secret scanning via gitleaks. However, deployment itself remains entirely manual — there is no automated CD step that pushes a passing build to Fly.io or Vercel. Each deployment requires a human to run `flyctl deploy` and `vercel deploy` manually.
 2. **No health-check-based rollback** — if the backend starts but fails the health check, Fly.io will attempt a rollback, but this is not configured explicitly.
 3. **No secrets rotation policy** — there is no procedure for rotating the `JWT_SECRET` or API keys without invalidating all existing sessions.
 4. **No database migration safety gate** — Alembic `upgrade head` is run manually. There is no automated check that the migration is backward-compatible before deploying.

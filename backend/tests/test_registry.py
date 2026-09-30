@@ -12,6 +12,10 @@ Tests are organised by feature:
 """
 import uuid
 
+import pytest
+
+pytestmark = pytest.mark.unit
+
 from app.core.seed import DEMO_TOOLS, seed
 from app.models.tool import Tool
 from app.repositories.registry import PermissionRepository

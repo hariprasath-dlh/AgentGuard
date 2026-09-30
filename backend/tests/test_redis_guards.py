@@ -36,10 +36,13 @@ def _redis_available() -> bool:
         return False
 
 
-pytestmark = pytest.mark.skipif(
-    not _redis_available(),
-    reason="Redis server is not available; skipping all Redis-dependent tests",
-)
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        not _redis_available(),
+        reason="Redis server is not available; skipping all Redis-dependent tests",
+    ),
+]
 
 
 

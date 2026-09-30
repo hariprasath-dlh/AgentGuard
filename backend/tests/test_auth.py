@@ -16,6 +16,8 @@ Tests are organised by feature:
 import uuid
 
 import pytest
+
+pytestmark = pytest.mark.unit
 from app.security.api_key import generate_api_key, hash_api_key
 from app.security.jwt import create_access_token, decode_access_token
 from app.security.password import hash_password, validate_password_strength, verify_password

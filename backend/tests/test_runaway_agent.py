@@ -38,6 +38,8 @@ def _redis_available() -> bool:
 
 _REDIS_AVAILABLE = _redis_available()
 
+pytestmark = pytest.mark.integration
+
 
 def run_simulation(db: Session, max_requests_limit: int = 10, loop_attempts: int = 30) -> dict:
     """Executes the runaway agent loop and returns execution telemetry."""

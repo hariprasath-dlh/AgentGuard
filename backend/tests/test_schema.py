@@ -4,6 +4,8 @@ import uuid
 from decimal import Decimal
 
 import pytest
+
+pytestmark = pytest.mark.unit
 from alembic import command
 from alembic.config import Config
 from app.models import (

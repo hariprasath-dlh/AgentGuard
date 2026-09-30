@@ -3,6 +3,8 @@ import uuid
 from unittest.mock import patch
 
 import pytest
+
+pytestmark = pytest.mark.unit
 from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
 from app.main import app
