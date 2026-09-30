@@ -124,7 +124,7 @@ jobs:
 
       - name: Run backend tests with coverage
         run: |
-          pytest tests/ \
+          PYTHONPATH=. pytest tests/ \
             --cov=app \
             --cov-report=json:coverage.json \
             --cov-report=term-missing \
