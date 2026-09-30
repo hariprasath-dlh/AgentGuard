@@ -2,7 +2,7 @@ import re
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -17,10 +17,10 @@ class RoleEnum(str, Enum):
 class UserRegisterRequest(BaseModel):
     email: str = Field(..., min_length=3, max_length=255)
     password: str = Field(..., min_length=8, max_length=72)
-    full_name: Optional[str] = Field(None, max_length=255)
-    organization_name: Optional[str] = Field(None, min_length=2, max_length=255)
-    organization_slug: Optional[str] = Field(None, min_length=2, max_length=255)
-    role: Optional[RoleEnum] = None
+    full_name: str | None = Field(None, max_length=255)
+    organization_name: str | None = Field(None, min_length=2, max_length=255)
+    organization_slug: str | None = Field(None, min_length=2, max_length=255)
+    role: RoleEnum | None = None
 
     @field_validator("password")
     @classmethod
@@ -47,7 +47,7 @@ class UserRegisterRequest(BaseModel):
 class UserLoginRequest(BaseModel):
     email: str = Field(..., min_length=3, max_length=255)
     password: str = Field(..., min_length=1)
-    organization_slug: Optional[str] = None
+    organization_slug: str | None = None
 
     @field_validator("email")
     @classmethod
@@ -70,20 +70,20 @@ class UserResponse(BaseModel):
 
     id: uuid.UUID
     organization_id: uuid.UUID
-    organization_name: Optional[str] = None
-    organization_slug: Optional[str] = None
-    role_id: Optional[uuid.UUID] = None
-    role: Optional[str] = None
+    organization_name: str | None = None
+    organization_slug: str | None = None
+    role_id: uuid.UUID | None = None
+    role: str | None = None
     email: str
-    full_name: Optional[str] = None
+    full_name: str | None = None
     is_active: bool
     created_at: datetime
 
 
 class APIKeyCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    agent_id: Optional[uuid.UUID] = None
-    expires_at: Optional[datetime] = None
+    agent_id: uuid.UUID | None = None
+    expires_at: datetime | None = None
 
 
 class APIKeyCreateResponse(BaseModel):
@@ -93,7 +93,7 @@ class APIKeyCreateResponse(BaseModel):
     name: str
     key_prefix: str
     api_key: str
-    agent_id: Optional[uuid.UUID] = None
+    agent_id: uuid.UUID | None = None
     organization_id: uuid.UUID
     created_at: datetime
 
@@ -104,11 +104,11 @@ class APIKeyResponse(BaseModel):
     id: uuid.UUID
     name: str
     key_prefix: str
-    agent_id: Optional[uuid.UUID] = None
+    agent_id: uuid.UUID | None = None
     organization_id: uuid.UUID
     is_active: bool
     created_at: datetime
-    expires_at: Optional[datetime] = None
+    expires_at: datetime | None = None
 
 
 class APIKeyRevokeResponse(BaseModel):

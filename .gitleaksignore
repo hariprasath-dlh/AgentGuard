@@ -1,6 +1,6 @@
 # .gitleaksignore
 # Each line is a fingerprint (commit:file:rule:line) of a known false positive.
-# Reviewed and approved as non-secrets on 2026-09-13.
+# Reviewed and approved as non-secrets on 2026-09-13 and 2026-09-28.
 
 # sdk/tests/test_sdk.py:92 — "ag_invalid_nonexistent_key_12345"
 # This is a deliberately malformed/invalid key used in test_authentication_error_malformed_key
@@ -11,3 +11,18 @@
 # This is a truncated JWT placeholder in API documentation (ends in literal "...").
 # It is not a real token; it cannot be decoded or used to authenticate.
 016fdcc4a20e9641b07e0f590a17a39e677f5041:docs/dashboard-spec.md:generic-api-key:55
+
+# docs/sdk.md:250 — "api_key=\"ag_live_abc123...\""
+# This is a truncated API key placeholder in SDK Quick Start documentation.
+# It is not a real key and ends with literal ellipsis.
+ad9400916c547bb43d3e20de5fb8dacc6829f369:docs/sdk.md:generic-api-key:250
+
+# docs/api.md:84 — "\"access_token\": \"eyJhbGciOiJIUzI1NiIs...\""
+# This is a truncated JWT token placeholder in the API documentation login response sample.
+# It is not a real token; it cannot be decoded or used for authentication.
+ad9400916c547bb43d3e20de5fb8dacc6829f369:docs/api.md:generic-api-key:84
+
+# docs/api.md:107 — "\"api_key\": \"ag_live_abc123def456...\""
+# This is a truncated dummy API key in the API documentation API key response sample.
+# It is not a real API key and ends with literal ellipsis.
+ad9400916c547bb43d3e20de5fb8dacc6829f369:docs/api.md:generic-api-key:107

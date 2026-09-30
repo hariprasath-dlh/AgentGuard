@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.repositories.registry import PermissionRepository, AgentRepository, ToolRepository
+from app.repositories.registry import AgentRepository, PermissionRepository, ToolRepository
 from app.schemas.auth import RoleEnum
 from app.schemas.registry import (
     PermissionGrantRequest,

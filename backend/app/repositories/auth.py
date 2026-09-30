@@ -1,9 +1,7 @@
 """Auth repository: user, organization, role, and API key operations."""
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import datetime
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.api_key import APIKey
@@ -11,16 +9,15 @@ from app.models.organization import Organization
 from app.models.role import Role
 from app.models.user import User
 from app.repositories.base import OrgScopedRepository
-from app.schemas.auth import RoleEnum
 from app.security.api_key import hash_api_key
 from app.security.password import hash_password
 
 
-def get_organization_by_slug(db: Session, slug: str) -> Optional[Organization]:
+def get_organization_by_slug(db: Session, slug: str) -> Organization | None:
     return db.query(Organization).filter(Organization.slug == slug).first()
 
 
-def get_organization_by_id(db: Session, org_id: uuid.UUID) -> Optional[Organization]:
+def get_organization_by_id(db: Session, org_id: uuid.UUID) -> Organization | None:
     return db.query(Organization).filter(Organization.id == org_id).first()
 
 
@@ -47,15 +44,15 @@ def get_or_create_role(
 
 
 def get_user_by_email(
-    db: Session, email: str, organization_id: Optional[uuid.UUID] = None
-) -> Optional[User]:
+    db: Session, email: str, organization_id: uuid.UUID | None = None
+) -> User | None:
     query = db.query(User).filter(User.email == email.strip().lower())
     if organization_id is not None:
         query = query.filter(User.organization_id == organization_id)
     return query.first()
 
 
-def get_user_by_id(db: Session, user_id: uuid.UUID) -> Optional[User]:
+def get_user_by_id(db: Session, user_id: uuid.UUID) -> User | None:
     return db.query(User).filter(User.id == user_id).first()
 
 
@@ -64,10 +61,10 @@ def create_user(
     *,
     organization_id: uuid.UUID,
     email: str,
-    password: Optional[str] = None,
-    hashed_password: Optional[str] = None,
-    full_name: Optional[str] = None,
-    role_id: Optional[uuid.UUID] = None,
+    password: str | None = None,
+    hashed_password: str | None = None,
+    full_name: str | None = None,
+    role_id: uuid.UUID | None = None,
 ) -> User:
     pwd_hash = hashed_password or (hash_password(password) if password else None)
     user = User(
@@ -88,10 +85,10 @@ def create_user(
 # ---------------------------------------------------------------------------
 
 class APIKeyRepository(OrgScopedRepository):
-    def get_active_by_hash(self, key_hash: str) -> Optional[APIKey]:
+    def get_active_by_hash(self, key_hash: str) -> APIKey | None:
         return (
             self._base_query(APIKey)
-            .filter(APIKey.key_hash == key_hash, APIKey.is_active == True)
+            .filter(APIKey.key_hash == key_hash, APIKey.is_active == True)  # noqa: E712
             .first()
         )
 
@@ -101,9 +98,9 @@ class APIKeyRepository(OrgScopedRepository):
         name: str,
         raw_key: str,
         key_prefix: str,
-        agent_id: Optional[uuid.UUID] = None,
-        user_id: Optional[uuid.UUID] = None,
-        expires_at: Optional[datetime] = None,
+        agent_id: uuid.UUID | None = None,
+        user_id: uuid.UUID | None = None,
+        expires_at: datetime | None = None,
     ) -> APIKey:
         key = APIKey(
             organization_id=self.organization_id,
@@ -119,7 +116,7 @@ class APIKeyRepository(OrgScopedRepository):
         self.db.flush()
         return key
 
-    def revoke(self, key_id: uuid.UUID) -> Optional[APIKey]:
+    def revoke(self, key_id: uuid.UUID) -> APIKey | None:
         key = self.get_by_id(APIKey, key_id)
         if key:
             key.is_active = False
@@ -127,4 +124,4 @@ class APIKeyRepository(OrgScopedRepository):
         return key
 
     def list_active(self) -> list[APIKey]:
-        return self._base_query(APIKey).filter(APIKey.is_active == True).all()
+        return self._base_query(APIKey).filter(APIKey.is_active == True).all()  # noqa: E712

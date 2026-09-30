@@ -8,12 +8,12 @@ Both queries are written to avoid N+1:
   - /dashboard/stats uses a single aggregation query per metric set.
   - /dashboard/activity uses a single JOIN query with a cursor-style limit/offset.
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import List
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, case, text
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -39,7 +39,7 @@ def _today_start() -> datetime:
     midnight as the exact daily boundary so 'requests today' and 'total spend today'
     reset in lockstep.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return now.replace(hour=0, minute=0, second=0, microsecond=0)
 
 

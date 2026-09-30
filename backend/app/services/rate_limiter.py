@@ -9,7 +9,8 @@ Security policy: Fail-closed. If Redis is unreachable, requests are denied by de
 import logging
 import time
 import uuid
-from typing import Optional, Tuple
+from typing import Tuple
+
 import redis
 from sqlalchemy.orm import Session
 
@@ -63,7 +64,7 @@ class RedisRateLimitChecker:
         input_data: DecisionInput,
         agent: Agent,
         tool: Tool,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, str | None]:
         """Evaluate sliding-window rate limits for the requesting agent.
 
         Returns (allowed: bool, reason: Optional[str]).

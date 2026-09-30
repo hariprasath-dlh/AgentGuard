@@ -1,7 +1,8 @@
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Callable, Optional, Sequence
+from datetime import UTC, datetime
+
 from fastapi import Depends, Header, HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
@@ -23,21 +24,21 @@ class AuthenticatedUser:
     email: str
     role: str
     is_active: bool
-    full_name: Optional[str] = None
-    organization_name: Optional[str] = None
-    organization_slug: Optional[str] = None
+    full_name: str | None = None
+    organization_name: str | None = None
+    organization_slug: str | None = None
 
 
 @dataclass
 class AuthenticatedAgent:
     api_key_id: uuid.UUID
     organization_id: uuid.UUID
-    agent_id: Optional[uuid.UUID]
+    agent_id: uuid.UUID | None
     name: str
 
 
 def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Security(security_bearer),
+    credentials: HTTPAuthorizationCredentials | None = Security(security_bearer),
     db: Session = Depends(get_db),
 ) -> AuthenticatedUser:
     """Extract and validate the JWT access token from the Authorization header.
@@ -50,7 +51,7 @@ def get_current_user(
             detail="Authentication credentials were not provided",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     payload = decode_access_token(credentials.credentials)
     user_id_str = payload.get("sub")
     if not user_id_str:
@@ -59,16 +60,16 @@ def get_current_user(
             detail="Invalid token claims",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     try:
         user_uuid = uuid.UUID(user_id_str)
     except ValueError:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid user identifier",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     user = db.query(User).filter(User.id == user_uuid).first()
     if user is None:
         raise HTTPException(
@@ -76,13 +77,13 @@ def get_current_user(
             detail="User not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive",
         )
-    
+
     role_name = user.role.name if user.role else (payload.get("role") or "DEVELOPER")
     org_name = user.organization.name if user.organization else None
     org_slug = user.organization.slug if user.organization else None
@@ -115,8 +116,8 @@ def require_role(*allowed_roles: RoleEnum) -> Callable:
 
 
 def get_current_agent(
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
-    auth_credentials: Optional[HTTPAuthorizationCredentials] = Security(security_bearer),
+    x_api_key: str | None = Header(None, alias="X-API-Key"),
+    auth_credentials: HTTPAuthorizationCredentials | None = Security(security_bearer),
     db: Session = Depends(get_db),
 ) -> AuthenticatedAgent:
     """Validate API key credentials for autonomous agent requests.
@@ -145,10 +146,10 @@ def get_current_agent(
         )
 
     if api_key_record.expires_at:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires_at = api_key_record.expires_at
         if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
+            expires_at = expires_at.replace(tzinfo=UTC)
         if expires_at < now:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

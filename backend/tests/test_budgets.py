@@ -11,11 +11,7 @@ Tests cover:
 """
 import uuid
 
-import pytest
-from fastapi.testclient import TestClient
-
 from tests.conftest import auth_headers, login_user, make_unique_slug, register_user
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -179,6 +175,7 @@ class TestBudgetUnlimitedCaps:
         the BUDGET check regardless of accumulated spend or proposed request cost."""
         from decimal import Decimal
         from unittest.mock import MagicMock
+
         from app.models.agent import Agent
         from app.models.budget import Budget
         from app.models.organization import Organization

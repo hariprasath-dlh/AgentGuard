@@ -8,10 +8,11 @@ The canonical machine-readable specification is available at [`docs/openapi.json
 
 ## Authentication
 
-The API uses two authentication mechanisms:
+The API uses three authentication mechanisms:
 
-1. **JWT Bearer Token** — for dashboard users (humans). Obtained via `POST /api/v1/auth/login`. Passed as `Authorization: Bearer <token>`.
+1. **JWT Bearer Token** — for dashboard users (humans). Obtained via `POST /api/v1/auth/login` (email/password) or via the Google OAuth 2.0 flow ending with `POST /api/v1/auth/google/exchange`. Passed as `Authorization: Bearer <token>`.
 2. **API Key** — for agents (autonomous systems). Created via `POST /api/v1/auth/api-keys`. Passed as `X-API-Key: ag_live_...` header or as a Bearer token starting with `ag_`.
+3. **Google OAuth 2.0** — for human users who sign in with their Google account. Flow: `GET /auth/google/login` → Google → `GET /auth/google/callback` → `POST /auth/google/exchange` → JWT token.
 
 ---
 
@@ -35,8 +36,12 @@ Every user has exactly one role within their organization:
 
 | Method | Path | RBAC | Description |
 |--------|------|------|-------------|
-| `POST` | `/auth/register` | Public | Register a new user. Creates or joins an organization. |
-| `POST` | `/auth/login` | Public | Authenticate and receive a JWT access token. |
+| `POST` | `/auth/register` | Public | Register a new user (email/password). Creates or joins an organization. |
+| `POST` | `/auth/login` | Public | Authenticate with email/password and receive a JWT access token. |
+| `GET` | `/auth/google/login` | Public | Initiate Google OAuth 2.0 Authorization Code flow. Redirects to Google. |
+| `GET` | `/auth/google/callback` | Public | Google OAuth redirect target. Exchanges code, provisions user, redirects to frontend with a short-lived exchange code. |
+| `POST` | `/auth/google/exchange` | Public | Exchange a short-lived one-time code (from Google callback redirect) for the actual JWT access token. |
+| `POST` | `/auth/refresh` | Public | Refresh a JWT access token using a refresh token. |
 | `GET` | `/auth/me` | Any authenticated | Return current user profile (includes organization_name, organization_slug). |
 | `POST` | `/auth/api-keys` | Any authenticated | Create a new API key. Raw key shown **once**. |
 | `GET` | `/auth/api-keys` | Any authenticated | List all active API keys for the caller's organization. |
@@ -87,7 +92,63 @@ Every user has exactly one role within their organization:
 }
 ```
 
-> **Note:** No refresh token is issued. When the access token expires (default: 30 minutes), the user must re-authenticate.
+> **Note:** No refresh token is issued for the email/password flow. When the access token expires (default: 30 minutes), the user must re-authenticate.
+
+---
+
+#### GET /auth/google/login
+
+Initiates the Google OAuth 2.0 Authorization Code flow. Generates a cryptographically signed CSRF `state` token (JWT, 10-minute TTL) and redirects to Google's authorization endpoint.
+
+**Query parameters:**
+- `redirect_target` (optional, string) — the frontend URL to redirect to after authentication. Defaults to `FRONTEND_URL/login`.
+
+**Response:** `307 Temporary Redirect` to Google OAuth consent page.
+
+---
+
+#### GET /auth/google/callback
+
+Google redirects here after the user grants consent. This endpoint:
+1. Validates the `state` JWT (CSRF protection — invalid or expired state → redirect to `/login?error=invalid_or_expired_state`)
+2. Exchanges the `code` for tokens via Google's token endpoint
+3. Verifies the Google ID token signature and audience
+4. Resolves or auto-provisions the user account (globally-unique email lookup)
+5. Issues a short-lived (60-second), single-use opaque exchange code
+6. Redirects to `redirect_target?code=<exchange_code>`
+
+**Query parameters (from Google):** `code`, `state`, `scope`, `authuser`, `prompt`
+
+**Response:** `307 Temporary Redirect` to the frontend with `?code=<exchange_code>`.
+
+> The JWT token is **never** placed in a URL. The exchange code is the only thing in the redirect URL, and it is single-use and expires in 60 seconds.
+
+---
+
+#### POST /auth/google/exchange
+
+Exchanges the short-lived opaque code (received in the frontend from the callback redirect) for the actual JWT access token. This is the final step of the OAuth flow and is called by the frontend JavaScript, not via redirect.
+
+```json
+// Request
+{
+  "code": "<opaque-exchange-code>"
+}
+
+// Response (200)
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer",
+  "expires_in": 1800
+}
+
+// Response (400) — code expired, already used, or invalid
+{
+  "detail": "Invalid, expired, or already used exchange code"
+}
+```
+
+---
 
 #### POST /auth/api-keys
 

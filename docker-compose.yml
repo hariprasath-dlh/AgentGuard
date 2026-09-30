@@ -32,13 +32,19 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql://agentguard:agentguard_password@postgres:5432/agentguard
       - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET=changeme_secret_key_jwt
-      - API_BASE_URL=http://localhost:8000
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:8080,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:8080,http://127.0.0.1:5173
-      - AGENTGUARD_ENV=development
+      - JWT_SECRET=${JWT_SECRET:-changeme_secret_key_jwt_dev_only_32b!}
+      - API_BASE_URL=${API_BASE_URL:-http://localhost:8000}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:8080,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:8080,http://127.0.0.1:5173}
+      - AGENTGUARD_ENV=${AGENTGUARD_ENV:-development}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-mock-google-client-id.apps.googleusercontent.com}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-mock-google-client-secret}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8000/api/v1/auth/google/callback}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8080}
     volumes:
       - ./backend:/app
     depends_on:

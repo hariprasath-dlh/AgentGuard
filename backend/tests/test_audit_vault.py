@@ -20,17 +20,12 @@ Test inventory:
 import hashlib
 import os
 import re
-import threading
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional
 
 import pytest
 import sqlalchemy
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-
 from app.core.database import Base
 from app.models.audit_log import AuditLog
 from app.models.organization import Organization
@@ -41,6 +36,8 @@ from app.services.audit_vault import (
     serialize_audit_event,
     verify_organization_chain,
 )
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
 POSTGRES_URL = os.getenv(
     "TEST_DATABASE_URL",
@@ -50,7 +47,8 @@ POSTGRES_URL = os.getenv(
 
 def _postgres_available() -> bool:
     try:
-        from sqlalchemy import create_engine as _ce, text as _text
+        from sqlalchemy import create_engine as _ce
+        from sqlalchemy import text as _text
         e = _ce(POSTGRES_URL, pool_pre_ping=True, connect_args={"connect_timeout": 3})
         with e.connect() as conn:
             conn.execute(_text("SELECT 1"))
@@ -79,7 +77,7 @@ def _fresh_org(session: Session) -> Organization:
     return org
 
 
-def _write_record(session: Session, org_id: uuid.UUID, seq_hint: int = 0, payload_extra: Optional[dict] = None) -> AuditLog:
+def _write_record(session: Session, org_id: uuid.UUID, seq_hint: int = 0, payload_extra: dict | None = None) -> AuditLog:
     payload = {"info": f"event-{seq_hint}", **(payload_extra or {})}
     return record_audit_log(
         db=session,
@@ -122,9 +120,9 @@ def pg_session(pg_engine):
 # ---------------------------------------------------------------------------
 # HTTP-layer helpers
 # ---------------------------------------------------------------------------
-from fastapi.testclient import TestClient
 from app.core.database import get_db
 from app.main import app as fastapi_app
+from fastapi.testclient import TestClient
 
 
 def _http_client_for_session(session: Session) -> TestClient:
@@ -320,7 +318,7 @@ class TestAuditVaultConcurrency:
 
         errors: list[str] = []
 
-        def write_one_record(thread_index: int) -> Optional[int]:
+        def write_one_record(thread_index: int) -> int | None:
             # Each thread opens its own engine connection (separate Postgres backend session)
             thread_session = sessionmaker(bind=pg_engine, expire_on_commit=False)()
             try:

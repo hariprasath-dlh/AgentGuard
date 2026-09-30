@@ -11,15 +11,11 @@ Tests are organised by feature:
   - Seed script idempotency & correct 5 demo tools
 """
 import uuid
-import pytest
 
-from app.core.seed import seed, DEMO_TOOLS
-from app.models.agent import Agent
-from app.models.permission import AgentToolPermission
+from app.core.seed import DEMO_TOOLS, seed
 from app.models.tool import Tool
 from app.repositories.registry import PermissionRepository
-from tests.conftest import register_user, login_user, auth_headers, make_unique_slug
-
+from tests.conftest import auth_headers, login_user, make_unique_slug, register_user
 
 # ---------------------------------------------------------------------------
 # Helpers

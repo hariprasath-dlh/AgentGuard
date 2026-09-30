@@ -5,7 +5,7 @@ tenant isolation. Never do ad-hoc organization_id filtering in endpoints —
 always delegate to the repository layer so isolation bugs can't slip in later.
 """
 import uuid
-from typing import Any, Optional, Type, TypeVar
+from typing import Any, Type, TypeVar
 
 from sqlalchemy.orm import Session
 
@@ -27,7 +27,7 @@ class OrgScopedRepository:
             model.organization_id == self.organization_id
         )
 
-    def get_by_id(self, model: Type[ModelT], record_id: uuid.UUID) -> Optional[ModelT]:
+    def get_by_id(self, model: Type[ModelT], record_id: uuid.UUID) -> ModelT | None:
         """Fetch a single record scoped to the current organization."""
         return (
             self._base_query(model)

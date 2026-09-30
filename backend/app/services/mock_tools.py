@@ -9,8 +9,9 @@ INTENTIONALLY EXCLUDED:
   ever returns ALLOW for delete_database, that is a bug.
 """
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 
 def read_customer(parameters: dict[str, Any]) -> dict[str, Any]:
@@ -33,7 +34,7 @@ def create_ticket(parameters: dict[str, Any]) -> dict[str, Any]:
         "subject": parameters.get("subject", "Support request"),
         "priority": parameters.get("priority", "normal"),
         "status": "open",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -44,7 +45,7 @@ def send_email(parameters: dict[str, Any]) -> dict[str, Any]:
         "to": parameters.get("to", "customer@example.com"),
         "subject": parameters.get("subject", "Notification"),
         "status": "sent",
-        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "sent_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -56,7 +57,7 @@ def process_refund(parameters: dict[str, Any]) -> dict[str, Any]:
         "customer_id": parameters.get("customer_id", "CUST-0001"),
         "reason": parameters.get("reason", "Customer requested refund"),
         "status": "completed",
-        "processed_at": datetime.now(timezone.utc).isoformat(),
+        "processed_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -64,7 +65,7 @@ def process_refund(parameters: dict[str, Any]) -> dict[str, Any]:
 # Handler registry — the gateway looks up by tool name.
 # Absence means no execution (safe fallback).
 # ---------------------------------------------------------------------------
-def get_handler(tool_name: str) -> Optional[Callable[[dict[str, Any]], dict[str, Any]]]:
+def get_handler(tool_name: str) -> Callable[[dict[str, Any]], dict[str, Any]] | None:
     """Look up a mock handler by tool name. Returns None if no handler exists."""
     if tool_name in ("read_customer", "create_ticket", "send_email", "process_refund"):
         handler = globals().get(tool_name)

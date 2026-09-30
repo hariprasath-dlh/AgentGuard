@@ -5,13 +5,14 @@ and queue inspection.
 """
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict
 
 
 class HITLReviewRequest(BaseModel):
     """Optional payload when approving or denying a HITL request."""
-    review_notes: Optional[str] = None
+    review_notes: str | None = None
 
 
 class HITLRequestResponse(BaseModel):
@@ -22,18 +23,18 @@ class HITLRequestResponse(BaseModel):
     organization_id: uuid.UUID
     tool_request_id: uuid.UUID
     status: str  # PENDING, APPROVED, DENIED, EXPIRED
-    reviewer_id: Optional[uuid.UUID] = None
-    review_notes: Optional[str] = None
-    expires_at: Optional[datetime] = None
-    reviewed_at: Optional[datetime] = None
+    reviewer_id: uuid.UUID | None = None
+    review_notes: str | None = None
+    expires_at: datetime | None = None
+    reviewed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
     # Contextual metadata from linked ToolRequest
-    tool_name: Optional[str] = None
-    agent_id: Optional[uuid.UUID] = None
-    input_payload: Optional[dict[str, Any]] = None
-    output_payload: Optional[dict[str, Any]] = None
+    tool_name: str | None = None
+    agent_id: uuid.UUID | None = None
+    input_payload: dict[str, Any] | None = None
+    output_payload: dict[str, Any] | None = None
 
 
 class HITLRequestListResponse(BaseModel):

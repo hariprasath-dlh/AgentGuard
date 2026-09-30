@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any, Dict
+
 import jwt
 from fastapi import HTTPException, status
 
@@ -11,19 +12,19 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 def create_access_token(
     data: Dict[str, Any],
-    expires_delta: Optional[timedelta] = None,
+    expires_delta: timedelta | None = None,
 ) -> str:
     """Create a signed JWT access token.
     
     Payload carries user_id (as sub), organization_id, and role.
     """
     to_encode = data.copy()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if expires_delta:
         expire = now + expires_delta
     else:
         expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+
     to_encode.update({"iat": now, "exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=ALGORITHM)
     return encoded_jwt
@@ -43,10 +44,10 @@ def decode_access_token(token: str) -> Dict[str, Any]:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[ALGORITHM])
         return payload
     except jwt.ExpiredSignatureError:
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except jwt.InvalidTokenError:
-        raise credentials_exception
+        raise credentials_exception  # noqa: B904

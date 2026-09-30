@@ -1,5 +1,6 @@
 import typing
 import uuid
+
 from sqlalchemy import Boolean, ForeignKey, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 

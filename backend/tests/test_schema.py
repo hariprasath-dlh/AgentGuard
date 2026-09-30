@@ -2,10 +2,8 @@ import os
 import tempfile
 import uuid
 from decimal import Decimal
-import pytest
-from sqlalchemy import create_engine, inspect
-from sqlalchemy.exc import IntegrityError
 
+import pytest
 from alembic import command
 from alembic.config import Config
 from app.models import (
@@ -22,6 +20,8 @@ from app.models import (
     ToolRequest,
     User,
 )
+from sqlalchemy import create_engine, inspect
+from sqlalchemy.exc import IntegrityError
 
 
 def test_alembic_migration_on_empty_db():
@@ -87,7 +87,8 @@ def test_alembic_migration_on_empty_db():
 
 def test_organization_creation(db_session):
     """Test creating an organization."""
-    org = Organization(name="Acme Corp", slug="acme-corp")
+    slug = f"acme-corp-{uuid.uuid4().hex[:6]}"
+    org = Organization(name="Acme Corp", slug=slug)
     db_session.add(org)
     db_session.commit()
 

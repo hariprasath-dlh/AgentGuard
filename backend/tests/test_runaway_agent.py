@@ -12,13 +12,9 @@ Can be run as a pytest test:
 Or executed directly as a standalone demonstration:
     python -m tests.test_runaway_agent
 """
-import sys
 import uuid
-from decimal import Decimal
-import pytest
-from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+import pytest
 from app.core.redis import get_redis_client
 from app.models.agent import Agent
 from app.models.budget import Budget
@@ -28,6 +24,7 @@ from app.models.tool import Tool
 from app.schemas.policy import CallerIdentity, DecisionEnum, DecisionInput
 from app.services.factory import create_policy_engine
 from app.services.rate_limiter import RedisRateLimitChecker
+from sqlalchemy.orm import Session
 
 
 def _redis_available() -> bool:
@@ -143,10 +140,11 @@ def test_runaway_agent_automatically_blocked(db_session: Session):
 # ===========================================================================
 
 if __name__ == "__main__":
+    import os
+
+    from app.core.database import Base
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
-    from app.core.database import Base
-    import os
 
     # Connect to SQLite or configured DB for standalone demonstration
     db_url = os.getenv("DEMO_DATABASE_URL", "sqlite:///./demo_runaway.db")
@@ -161,7 +159,7 @@ if __name__ == "__main__":
         print("=" * 65)
         limit = 10
         attempts = 25
-        print(f"Agent: RunawayFinanceBot")
+        print("Agent: RunawayFinanceBot")
         print(f"Policy: max_requests_per_minute = {limit}")
         print(f"Simulating autonomous infinite tool-call loop ({attempts} requests)...")
         print("-" * 65)
@@ -177,7 +175,7 @@ if __name__ == "__main__":
                 print(f"  Request #{i:02d}: [DENY]  -> Blocked by rate limiter")
 
         print("-" * 65)
-        print(f"Summary:")
+        print("Summary:")
         print(f"  Total Attempted:  {res['total_attempted']}")
         print(f"  Allowed:          {res['allowed_count']}")
         print(f"  Blocked:          {res['denied_count']}")

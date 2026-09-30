@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List
 
 from pydantic import BaseModel
 
@@ -24,11 +24,11 @@ class ActivityItem(BaseModel):
     """Single item in the reverse-chronological activity feed."""
     request_id: uuid.UUID
     agent_id: uuid.UUID
-    agent_name: Optional[str] = None
-    tool_name: Optional[str] = None
+    agent_name: str | None = None
+    tool_name: str | None = None
     decision: str
-    reason: Optional[str] = None
-    latency_ms: Optional[float] = None
+    reason: str | None = None
+    latency_ms: float | None = None
     created_at: datetime
 
 

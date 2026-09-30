@@ -8,32 +8,26 @@ Validates core security invariants of AgentGuard:
 5. Audit Vault cryptographic chain immutability
 6. CRITICAL risk tool bypass immunity (permission override guarantee)
 """
-import os
-import uuid
 import time
-import pytest
-import jwt
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
+import uuid
 
 import app.models  # noqa: F401
-from app.core.database import Base, get_db
+import jwt
+import pytest
 from app.core.config import settings
-from app.security.jwt import create_access_token
-from app.security.password import hash_password
-from app.models.organization import Organization
-from app.models.user import User
 from app.models.agent import Agent
-from app.models.tool import Tool
-from app.models.permission import AgentToolPermission
-from app.models.audit_log import AuditLog
-from app.models.tool_request import ToolRequest
 from app.models.hitl_request import HITLRequest
-from app.schemas.policy import DecisionInput, CallerIdentity
+from app.models.organization import Organization
+from app.models.permission import AgentToolPermission
+from app.models.tool import Tool
+from app.models.tool_request import ToolRequest
+from app.models.user import User
+from app.schemas.policy import CallerIdentity, DecisionInput
 from app.services.audit_vault import record_audit_log, verify_organization_chain
-from app.services.factory import create_policy_engine
 from app.services.policy_engine import PolicyEngine, default_budget_checker, default_rate_limit_checker
-from tests.conftest import register_user, login_user, auth_headers
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+from tests.conftest import auth_headers, login_user, register_user
 
 
 @pytest.fixture
@@ -49,7 +43,7 @@ def security_setup(client: TestClient, db_session: Session):
     res_admin, slug_a = register_user(client, email_admin_a, "Password123!", role="ADMIN")
     assert res_admin.status_code == 201, f"Reg Admin failed: {res_admin.text}"
     token_admin_a = login_user(client, email_admin_a, "Password123!", slug_a).json()["access_token"]
-    
+
     # Register Dev Alpha in Org Alpha
     res_dev, _ = register_user(client, email_dev_a, "Password123!", slug=slug_a, role="DEVELOPER")
     assert res_dev.status_code == 201, f"Reg Dev failed: {res_dev.text}"
@@ -214,7 +208,7 @@ class TestAuditChainImmutability:
 
     def test_genesis_and_subsequent_hash_chain(self, db_session: Session, security_setup):
         org_id = security_setup["org_a"].id
-        
+
         entry1 = record_audit_log(
             db=db_session,
             organization_id=org_id,
@@ -226,7 +220,7 @@ class TestAuditChainImmutability:
             request_id=uuid.uuid4(),
             tool_name="test_tool"
         )
-        
+
         entry2 = record_audit_log(
             db=db_session,
             organization_id=org_id,
@@ -238,11 +232,11 @@ class TestAuditChainImmutability:
             request_id=uuid.uuid4(),
             tool_name="test_tool"
         )
-        
+
         assert entry1.previous_hash == "0" * 64
         assert entry2.previous_hash == entry1.current_hash
         assert len(entry2.current_hash) == 64
-        
+
         # Verify chain integrity function
         result = verify_organization_chain(db_session, org_id)
         assert result["status"] == "VALID"
@@ -255,7 +249,7 @@ class TestCriticalRiskOverrideGuarantee:
     def test_critical_tool_denied_with_explicit_permission(self, db_session: Session, security_setup):
         agent = security_setup["agent_a"]
         critical_tool = security_setup["tool_critical"]
-        
+
         # Grant explicit permission is_allowed=True
         perm = AgentToolPermission(
             id=uuid.uuid4(),

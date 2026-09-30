@@ -12,11 +12,8 @@ Tests cover:
   - RBAC: DEVELOPER is denied all access
   - Org isolation: policy from org-A not visible to org-B
 """
-import pytest
-from fastapi.testclient import TestClient
 
 from tests.conftest import auth_headers, login_user, make_unique_slug, register_user
-
 
 # ---------------------------------------------------------------------------
 # Helpers

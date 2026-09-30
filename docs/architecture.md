@@ -23,11 +23,11 @@ AgentGuard is a hybrid B2B SaaS product made of three components:
 │                        Component A                                  │
 │                Core Engine (FastAPI Backend)                         │
 │                                                                     │
-│   ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
-│   │ Auth / RBAC  │  │ Policy Engine│  │ Guard Gateway            │ │
-│   │ JWT + API Key│  │ 11-step      │  │ POST /guard/check        │ │
-│   └──────────────┘  │ pipeline     │  │ (the single chokepoint)  │ │
-│                     └──────────────┘  └──────────────────────────┘ │
+│   ┌──────────────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
+│   │ Auth / RBAC          │  │ Policy Engine│  │ Guard Gateway            │ │
+│   │ JWT + API Key        │  │ 11-step      │  │ POST /guard/check        │ │
+│   │ + Google OAuth 2.0   │  │ pipeline     │  │ (the single chokepoint)  │ │
+│   └──────────────────────┘  └──────────────┘  └──────────────────────────┘ │
 │   ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐ │
 │   │ Rate Limiter │  │ Budget Guard │  │ Audit Vault              │ │
 │   │ Redis ZSET   │  │ Redis + PG   │  │ SHA-256 Hash Chain       │ │
@@ -127,7 +127,13 @@ sequenceDiagram
 
 ## Data Model
 
-The database has 12 tables. Here is their structure and relationships:
+The database has 12 tables. The schema is managed by three Alembic migrations in `backend/alembic/versions/`:
+
+1. `0e674447729b_initial_12_tables.py` — initial schema: all 12 tables
+2. `3f8a9e1b2c4d_make_email_globally_unique.py` — adds a global `UNIQUE` constraint on `users.email` (required for Google OAuth to resolve accounts safely across organizations)
+3. `4a7b2c9d1e3f_restrict_user_fk_on_hitl_requests.py` — changes `hitl_requests.reviewer_id` FK to `ON DELETE RESTRICT` (preserves audit integrity by preventing user deletion while reviewed HITL records exist)
+
+Here is their structure and relationships:
 
 ```mermaid
 erDiagram
@@ -170,8 +176,8 @@ erDiagram
         uuid id PK
         uuid organization_id FK
         uuid role_id FK
-        string email
-        string hashed_password
+        string email UK
+        string hashed_password "nullable (NULL for Google-only accounts)"
         string full_name
         boolean is_active
         timestamp created_at

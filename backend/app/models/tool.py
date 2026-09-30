@@ -1,5 +1,6 @@
 import typing
 import uuid
+
 from sqlalchemy import Boolean, ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,7 +24,7 @@ class Tool(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    description: Mapped[typing.Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     risk_level: Mapped[str] = mapped_column(String(20), default="LOW", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 

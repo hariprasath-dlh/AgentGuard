@@ -1,6 +1,7 @@
 import typing
 import uuid
-from sqlalchemy import ForeignKey, JSON, String, Text, UniqueConstraint, Uuid
+
+from sqlalchemy import JSON, ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -21,8 +22,8 @@ class Role(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         index=True,
     )
     name: Mapped[str] = mapped_column(String(50), nullable=False)
-    description: Mapped[typing.Optional[str]] = mapped_column(Text, nullable=True)
-    permissions: Mapped[typing.Optional[dict]] = mapped_column(JSON, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    permissions: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
         UniqueConstraint("organization_id", "name", name="uq_roles_org_name"),

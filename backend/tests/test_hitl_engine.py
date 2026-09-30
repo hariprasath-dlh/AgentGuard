@@ -16,14 +16,16 @@ Tests cover:
  13. Full FinanceAgent refund demo scenario end-to-end
 """
 import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
+
+# ---------------------------------------------------------------------------
+# Test Helpers
+# ---------------------------------------------------------------------------
+from unittest.mock import patch as _mock_patch
 
 import pytest
-import sqlalchemy
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-
+from app.api.hitl import sweep_expired_hitl_requests
 from app.core.database import get_db
 from app.core.seed import seed
 from app.main import app as fastapi_app
@@ -35,23 +37,20 @@ from app.models.organization import Organization
 from app.models.permission import AgentToolPermission
 from app.models.tool import Tool
 from app.models.tool_request import ToolRequest
-from app.models.user import User
-from app.schemas.auth import RoleEnum
 from app.security.api_key import generate_api_key
 from app.services import mock_tools
 from app.services.audit_vault import verify_organization_chain
-from app.api.hitl import sweep_expired_hitl_requests
-
-
-# ---------------------------------------------------------------------------
-# Test Helpers
-# ---------------------------------------------------------------------------
-from unittest.mock import patch as _mock_patch
 from app.services.policy_engine import (
     PolicyEngine as _PolicyEngine,
+)
+from app.services.policy_engine import (
     default_budget_checker as _default_budget_checker,
+)
+from app.services.policy_engine import (
     default_rate_limit_checker as _default_rate_limit_checker,
 )
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 
 def _stub_create_policy_engine(db, redis_client=None):
@@ -349,7 +348,7 @@ class TestHITLEngine:
             hitl = db_session.query(HITLRequest).filter(HITLRequest.tool_request_id == req_id).first()
 
             # Manually backdate expiration into the past
-            past_time = datetime.now(timezone.utc) - timedelta(minutes=5)
+            past_time = datetime.now(UTC) - timedelta(minutes=5)
             hitl.expires_at = past_time
             db_session.commit()
 
@@ -375,7 +374,7 @@ class TestHITLEngine:
     def test_sweep_expired_hitl_requests_in_isolation(self, db_session, hitl_env):
         """9. sweep_expired_hitl_requests flips only past-expiration pending requests."""
         org_id = hitl_env["org"].id
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Create 2 expired PENDING requests and 2 active PENDING requests
         # We need mock ToolRequest rows for FK

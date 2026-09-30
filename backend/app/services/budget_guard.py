@@ -7,11 +7,12 @@ and Redis for ultra-low latency running total counters.
 
 Security policy: Fail-closed. If Redis is unreachable, requests are denied by default.
 """
-from datetime import datetime, timezone
-from decimal import Decimal
 import logging
 import uuid
-from typing import Optional, Tuple
+from datetime import UTC, datetime
+from decimal import Decimal
+from typing import Tuple
+
 import redis
 from sqlalchemy.orm import Session
 
@@ -50,7 +51,7 @@ class RedisBudgetChecker:
         Synchronized with Phase 12 dashboard/stats daily boundary (_today_start()),
         ensuring daily budget reset and dashboard metrics are aligned on UTC midnight.
         """
-        return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        return datetime.now(UTC).strftime("%Y-%m-%d")
 
     def _session_cost_key(self, agent_id: uuid.UUID) -> str:
         return f"budget:session:cost:{agent_id}"
@@ -83,7 +84,7 @@ class RedisBudgetChecker:
         input_data: DecisionInput,
         agent: Agent,
         tool: Tool,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, str | None]:
         """Check whether proposed request exceeds session/daily cost or token limits.
 
         Returns (allowed: bool, reason: Optional[str]).
@@ -125,7 +126,7 @@ class RedisBudgetChecker:
 
             curr_day_cost = float(res[1]) if res[1] is not None else curr_sess_cost
             curr_sess_tokens = int(res[2]) if res[2] is not None else 0
-            curr_day_tokens = int(res[3]) if res[3] is not None else 0
+            _curr_day_tokens = int(res[3]) if res[3] is not None else 0  # noqa: F841
 
             # ---------------------------------------------------------------
             # 2. Check Session Cost Limit

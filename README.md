@@ -94,7 +94,7 @@ Every tool call is evaluated through this deterministic pipeline in strict order
 | Backend API | Python 3.11, FastAPI, Pydantic, SQLAlchemy, Alembic |
 | Database | PostgreSQL 15 (production) / SQLite (local dev fallback) |
 | Cache & Rate Limiting | Redis 7 (sorted sets for sliding windows) |
-| Auth | JWT (PyJWT), bcrypt password hashing, API key authentication |
+| Auth | JWT (PyJWT), bcrypt password hashing, Google OAuth 2.0, API key authentication |
 | Audit | SHA-256 hash chaining with canonical JSON serialization |
 | SDK | Python, httpx, Pydantic — `agentguard-governance-sdk` package |
 | Frontend | TanStack Start, React 19, TypeScript, Tailwind CSS, Radix UI |
@@ -290,7 +290,9 @@ npx playwright test
 
 ## Security Model
 
-- **JWT authentication** for dashboard users (no refresh tokens — tokens expire and require re-login)
+- **JWT authentication** for dashboard users (email/password or Google OAuth 2.0 with signed `state` CSRF protection and 60-second single-use exchange codes; no refresh tokens)
+- **Global email uniqueness** — `users.email` is globally unique across organizations, preventing duplicate account collision between OAuth and password flows
+- **Audit integrity** — `hitl_requests.reviewer_id` foreign key enforces `ON DELETE RESTRICT` to preserve reviewer audit trails
 - **API key authentication** for agents (SHA-256 hashed storage, plaintext shown exactly once at creation)
 - **5-role RBAC** with per-endpoint enforcement via `require_role()` dependency injection
 - **Organization isolation** — every database query is scoped by `organization_id`
@@ -322,6 +324,7 @@ These are honest, documented limitations of the current implementation:
 
 | Document | Description |
 |----------|------------|
+| [USER_GUIDE.md](USER_GUIDE.md) | **Complete Beginner & User Guide** (Step-by-step setup, SDK integration, and FAQs) |
 | [docs/architecture.md](docs/architecture.md) | System architecture, data model, and decision pipeline |
 | [docs/api.md](docs/api.md) | REST API reference with RBAC restrictions |
 | [docs/sdk.md](docs/sdk.md) | Python SDK reference and usage guide |

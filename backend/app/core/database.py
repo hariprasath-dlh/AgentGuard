@@ -30,8 +30,18 @@ if settings.DATABASE_URL.startswith("sqlite"):
         "concurrency across multi-threaded writes on SQLite. Use PostgreSQL in production!"
     )
     from app.models import (  # noqa: F401 — side-effect: registers tables on Base
-        organization, role, user, agent, tool, permission,
-        policy, budget, tool_request, hitl_request, audit_log, api_key
+        agent,
+        api_key,
+        audit_log,
+        budget,
+        hitl_request,
+        organization,
+        permission,
+        policy,
+        role,
+        tool,
+        tool_request,
+        user,
     )
     Base.metadata.create_all(bind=engine)
 

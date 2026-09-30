@@ -28,7 +28,7 @@ from app.schemas.registry import (
     AgentUpdateRequest,
 )
 from app.security.api_key import generate_api_key
-from app.security.deps import AuthenticatedUser, get_current_user, require_role
+from app.security.deps import AuthenticatedUser, require_role
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 

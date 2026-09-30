@@ -13,22 +13,18 @@ Verifies:
       5. DENY from PROHIBITED PARAMETERS overrides PENDING from HITL.
 """
 import uuid
-import pytest
-from sqlalchemy.orm import Session
 
+import pytest
 from app.models.agent import Agent
 from app.models.organization import Organization
 from app.models.permission import AgentToolPermission
 from app.models.policy import Policy
 from app.models.tool import Tool
-from app.repositories.registry import AgentRepository, PermissionRepository, ToolRepository
 from app.schemas.policy import (
     CallerIdentity,
-    CheckResult,
     CheckStatus,
     DecisionEnum,
     DecisionInput,
-    DecisionOutput,
 )
 from app.services.policy_engine import (
     PolicyEngine,
@@ -46,7 +42,7 @@ from app.services.policy_engine import (
     default_budget_checker,
     default_rate_limit_checker,
 )
-
+from sqlalchemy.orm import Session
 
 # ---------------------------------------------------------------------------
 # Fixtures

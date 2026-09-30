@@ -29,11 +29,8 @@ def upgrade() -> None:
                 FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE RESTRICT;
         """))
     else:
-        with op.batch_alter_table('hitl_requests', schema=None) as batch_op:
-            try:
-                batch_op.drop_constraint('hitl_requests_reviewer_id_fkey', type_='foreignkey')
-            except Exception:
-                pass
+        # For SQLite, batch_alter_table rebuilds table with updated foreign key
+        with op.batch_alter_table('hitl_requests', schema=None, recreate='always') as batch_op:
             batch_op.create_foreign_key('hitl_requests_reviewer_id_fkey', 'users', ['reviewer_id'], ['id'], ondelete='RESTRICT')
 
 
@@ -48,9 +45,5 @@ def downgrade() -> None:
                 FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE SET NULL;
         """))
     else:
-        with op.batch_alter_table('hitl_requests', schema=None) as batch_op:
-            try:
-                batch_op.drop_constraint('hitl_requests_reviewer_id_fkey', type_='foreignkey')
-            except Exception:
-                pass
+        with op.batch_alter_table('hitl_requests', schema=None, recreate='always') as batch_op:
             batch_op.create_foreign_key('hitl_requests_reviewer_id_fkey', 'users', ['reviewer_id'], ['id'], ondelete='SET NULL')

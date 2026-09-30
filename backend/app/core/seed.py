@@ -15,11 +15,10 @@ Usage:
 SAFETY: No code in this file executes real destructive operations.
 Tools are registry rows only — there is no execution logic here.
 """
+import logging
 import os
 import sys
-import logging
-import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 # Ensure the backend package root is on the path when run as a script
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -28,7 +27,6 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.models.agent import Agent
-from app.models.audit_log import AuditLog
 from app.models.budget import Budget
 from app.models.hitl_request import HITLRequest
 from app.models.organization import Organization
@@ -290,7 +288,7 @@ def seed(db: Session, org_slug: str = DEMO_ORG_SLUG) -> dict:
         .count()
     )
     if existing_requests_count == 0:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         # Seed events across days 5, 4, 3, 2, 1, and today
         event_specs = [
             # Day -4
@@ -381,7 +379,7 @@ def seed(db: Session, org_slug: str = DEMO_ORG_SLUG) -> dict:
         .count()
     )
     if pending_hitl_count == 0:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         t = tools_by_name.get("process_refund")
         if t and agent:
             req = ToolRequest(

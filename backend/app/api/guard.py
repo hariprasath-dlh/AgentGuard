@@ -18,8 +18,8 @@ import json
 import logging
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -78,7 +78,7 @@ def guard_check(
 
     # Resolve tool if present in org
     tool_repo = ToolRepository(db=db, organization_id=agent.organization_id)
-    tool: Optional[Tool] = tool_repo.get_by_name(request_data.tool_name)
+    tool: Tool | None = tool_repo.get_by_name(request_data.tool_name)
     tool_id = tool.id if tool else None
 
     # Determine mock handler availability for ALLOW
@@ -104,7 +104,7 @@ def guard_check(
 
     # 3. Create AuditLog row via audit_vault (real SHA-256 hash chain, row-level org lock)
     audit_log_id = uuid.uuid4()
-    audit_log = record_audit_log(
+    record_audit_log(
         db=db,
         organization_id=agent.organization_id,
         agent_id=request_data.agent_id,
@@ -151,7 +151,7 @@ def guard_check(
                 organization_id=agent.organization_id,
                 tool_request_id=tool_request.id,
                 status="PENDING",
-                expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+                expires_at=datetime.now(UTC) + timedelta(hours=24),
             )
             db.add(hitl_req)
 
@@ -161,7 +161,7 @@ def guard_check(
     except Exception as exc:
         db.rollback()
         logger.error(f"Failed to commit audit record for request {server_request_id}: {exc}")
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to record audit trail. Action was blocked.",
         )

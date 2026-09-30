@@ -2,7 +2,7 @@
 
 Injects the concrete Redis-backed budget and rate limit checkers into PolicyEngine.
 """
-from typing import Optional
+
 import redis
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,7 @@ from app.services.rate_limiter import RedisRateLimitChecker
 
 def create_policy_engine(
     db: Session,
-    redis_client: Optional[redis.Redis] = None,
+    redis_client: redis.Redis | None = None,
 ) -> PolicyEngine:
     """Instantiate a PolicyEngine wired with real Redis-backed checkers.
 

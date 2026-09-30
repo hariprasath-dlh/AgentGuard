@@ -1,7 +1,8 @@
 import typing
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import BigInteger, DateTime, ForeignKey, JSON, String, Uuid, func
+from datetime import UTC, datetime
+
+from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -23,31 +24,31 @@ class AuditLog(Base, UUIDPrimaryKeyMixin):
         nullable=False,
         index=True,
     )
-    agent_id: Mapped[typing.Optional[uuid.UUID]] = mapped_column(
+    agent_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("agents.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    tool_id: Mapped[typing.Optional[uuid.UUID]] = mapped_column(
+    tool_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("tools.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
     event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    decision: Mapped[typing.Optional[str]] = mapped_column(String(50), nullable=True, index=True)
-    payload: Mapped[typing.Optional[dict]] = mapped_column(JSON, nullable=True)
-    previous_hash: Mapped[typing.Optional[str]] = mapped_column(
+    decision: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    previous_hash: Mapped[str | None] = mapped_column(
         String(64), nullable=True, index=True
     )
     current_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    sequence_number: Mapped[typing.Optional[int]] = mapped_column(
+    sequence_number: Mapped[int | None] = mapped_column(
         BigInteger, nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         server_default=func.now(),
         nullable=False,
         index=True,

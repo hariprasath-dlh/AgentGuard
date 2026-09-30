@@ -14,14 +14,12 @@ Tests are organised by feature:
   - Organization isolation (cross-org access denied)
 """
 import uuid
+
 import pytest
-
-from app.security.password import hash_password, verify_password, validate_password_strength
-from app.security.jwt import create_access_token, decode_access_token
 from app.security.api_key import generate_api_key, hash_api_key
-
-from tests.conftest import register_user, login_user, auth_headers, make_unique_slug
-
+from app.security.jwt import create_access_token, decode_access_token
+from app.security.password import hash_password, validate_password_strength, verify_password
+from tests.conftest import auth_headers, login_user, make_unique_slug, register_user
 
 # ===========================================================================
 # Unit: password

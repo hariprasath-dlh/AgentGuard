@@ -8,13 +8,12 @@ Tested against a real Redis instance on localhost:6379:
   - Two different agents' counters are completely isolated
   - Redis connection failure fails safe (fail-closed: denies by default)
 """
-from decimal import Decimal
 import time
 import uuid
+from decimal import Decimal
+
 import pytest
 import redis
-from sqlalchemy.orm import Session
-
 from app.core.redis import get_redis_client
 from app.models.agent import Agent
 from app.models.budget import Budget
@@ -25,6 +24,7 @@ from app.schemas.policy import CallerIdentity, DecisionEnum, DecisionInput
 from app.services.budget_guard import RedisBudgetChecker
 from app.services.factory import create_policy_engine
 from app.services.rate_limiter import RedisRateLimitChecker
+from sqlalchemy.orm import Session
 
 
 def _redis_available() -> bool:

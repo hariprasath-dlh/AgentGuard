@@ -3,13 +3,14 @@
 Provides thread-safe connection pooling, client instantiation, and FastAPI dependency.
 Reads REDIS_URL from application settings / environment.
 """
-from typing import Generator, Optional
+from collections.abc import Generator
+
 import redis
 
 from app.core.config import settings
 
 # Global connection pool
-_pool: Optional[redis.ConnectionPool] = None
+_pool: redis.ConnectionPool | None = None
 
 
 def get_redis_pool() -> redis.ConnectionPool:

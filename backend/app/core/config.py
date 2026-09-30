@@ -1,5 +1,20 @@
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 from pydantic import BaseModel
+
+# Load .env from repository root or current working directory
+_ENV_CANDIDATES = [
+    Path(__file__).resolve().parents[3] / ".env",
+    Path(__file__).resolve().parents[2] / ".env",
+    Path.cwd() / ".env",
+    Path("/app/.env"),
+]
+for _candidate in _ENV_CANDIDATES:
+    if _candidate.is_file():
+        load_dotenv(dotenv_path=_candidate, override=False)
+        break
 
 
 _DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "agentguard.db"))

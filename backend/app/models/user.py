@@ -1,6 +1,7 @@
 import typing
 import uuid
-from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint, Uuid
+
+from sqlalchemy import Boolean, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -22,15 +23,15 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         nullable=False,
         index=True,
     )
-    role_id: Mapped[typing.Optional[uuid.UUID]] = mapped_column(
+    role_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("roles.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
-    hashed_password: Mapped[typing.Optional[str]] = mapped_column(String(255), nullable=True)
-    full_name: Mapped[typing.Optional[str]] = mapped_column(String(255), nullable=True)
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Relationships

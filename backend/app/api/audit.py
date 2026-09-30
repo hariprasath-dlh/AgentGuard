@@ -8,8 +8,8 @@ RBAC Matrix:
 All endpoints enforce strict organization isolation.
 """
 import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db

@@ -45,7 +45,7 @@ Work through this before starting deployment:
 
 ### Apply Alembic Migrations
 
-The backend uses Alembic for database migrations. From the `backend/` directory:
+The backend uses Alembic for database migrations. There are **three migrations** in `backend/alembic/versions/`. From the `backend/` directory:
 
 ```bash
 cd backend
@@ -54,21 +54,11 @@ pip install -r requirements.txt
 # Point at the production database
 export DATABASE_URL="postgresql://neondb_owner:<password>@<host>.neon.tech/agentguard?sslmode=require"
 
-# Apply all migrations
+# Apply all three migrations in order
 alembic upgrade head
 ```
 
-If there are no Alembic migration files (the project used `Base.metadata.create_all()` for development), run this one-time command:
-
-```bash
-python -c "
-from app.core.config import settings
-from app.core.database import Base, engine
-from app.models import *
-Base.metadata.create_all(bind=engine)
-print('Tables created.')
-"
-```
+> **Important:** Production deployments must use real PostgreSQL. The backend will log a `CRITICAL WARNING` and some features (row-level locking for the audit chain) will silently malfunction on SQLite. The SQLite fallback exists only for local development convenience.
 
 Verify tables were created by connecting to the database and listing tables.
 
@@ -86,6 +76,8 @@ Verify tables were created by connecting to the database and listing tables.
    ```
 
 > **Note:** Upstash free tier enforces a daily command limit. For heavy testing, monitor usage.
+
+> **Redis Persistence:** The local `docker-compose.yml` enables AOF (Append-Only File) persistence for Redis, meaning counters survive container restarts locally. A managed Redis provider (Upstash, ElastiCache, etc.) must be separately confirmed to have persistence enabled. If Redis data is lost on a production restart, all budget running totals and rate-limit counters reset to zero — the limits in PostgreSQL are safe, but agents could exceed their budget or rate limits in the interval before counters rebuild.
 
 ---
 
@@ -132,8 +124,14 @@ flyctl secrets set \
   JWT_SECRET="<your-32-byte-secret>" \
   API_BASE_URL="https://agentguard-api.fly.dev" \
   CORS_ORIGINS="https://your-frontend.vercel.app" \
-  AGENTGUARD_ENV="production"
+  FRONTEND_URL="https://your-frontend.vercel.app" \
+  AGENTGUARD_ENV="production" \
+  GOOGLE_CLIENT_ID="<your-google-client-id>.apps.googleusercontent.com" \
+  GOOGLE_CLIENT_SECRET="<your-google-client-secret>" \
+  GOOGLE_REDIRECT_URI="https://agentguard-api.fly.dev/api/v1/auth/google/callback"
 ```
+
+> **Google Cloud Console:** After setting `GOOGLE_REDIRECT_URI`, you must also add `https://agentguard-api.fly.dev/api/v1/auth/google/callback` to the **Authorized redirect URIs** list in your OAuth client in Google Cloud Console. Add the production frontend origin (e.g., `https://agentguard.vercel.app`) to **Authorized JavaScript origins**.
 
 Deploy:
 
@@ -216,13 +214,19 @@ All environment variables the backend reads:
 | Variable | Required | Default (dev) | Production Value |
 |----------|----------|---------------|-----------------|
 | `DATABASE_URL` | Yes | SQLite fallback | PostgreSQL connection string |
-| `REDIS_URL` | Yes | `redis://localhost:6379/0` | Upstash Redis URL |
+| `REDIS_URL` | Yes | `redis://localhost:6379/0` | Upstash Redis URL (`rediss://`) |
 | `JWT_SECRET` | Yes | Hardcoded dev value | Random 32+ byte hex string |
 | `API_BASE_URL` | No | `http://localhost:8000` | `https://agentguard-api.fly.dev` |
-| `CORS_ORIGINS` | Yes | `http://localhost:3000` | Frontend deployment URL |
+| `CORS_ORIGINS` | Yes | `http://localhost:3000,...` | Production frontend URL only (no trailing slash) |
+| `FRONTEND_URL` | Yes | `http://localhost:8080` | Production frontend URL (e.g., `https://agentguard.vercel.app`) |
 | `AGENTGUARD_ENV` | No | `development` | `production` |
+| `GOOGLE_CLIENT_ID` | Yes (for OAuth) | Mock placeholder | OAuth Web Client ID from Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | Yes (for OAuth) | Mock placeholder | OAuth Client Secret from Google Cloud Console |
+| `GOOGLE_REDIRECT_URI` | Yes (for OAuth) | `http://localhost:8000/api/v1/auth/google/callback` | `https://agentguard-api.fly.dev/api/v1/auth/google/callback` |
 
 > **Security:** The default `JWT_SECRET` in `config.py` is `"changeme_secret_key_jwt_dev_only_32b!"`. This must be overridden in production. Any token signed with the default secret is exploitable if the default is publicly known.
+
+> **OAuth without credentials:** If `GOOGLE_CLIENT_ID` is not set, the backend falls back to the placeholder value `mock-google-client-id.apps.googleusercontent.com`. The `/auth/google/login` endpoint will redirect to Google, which will immediately reject the request with `Error 401: invalid_client`. The email/password auth flow is not affected.
 
 ---
 
@@ -274,9 +278,15 @@ Run through this after every production deployment:
 - [ ] Frontend can authenticate and reach the dashboard
 - [ ] `CORS_ORIGINS` set to exact frontend URL (no trailing slash)
 - [ ] `JWT_SECRET` is not the default dev value
-- [ ] `DATABASE_URL` points to PostgreSQL (not SQLite)
+- [ ] `DATABASE_URL` points to PostgreSQL (not SQLite) — startup log must NOT contain the SQLite `CRITICAL WARNING`
 - [ ] `REDIS_URL` is reachable from backend (test with a guard/check call)
 - [ ] HTTPS is enforced (Fly.io `force_https = true`)
+- [ ] `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `FRONTEND_URL` set
+- [ ] `GOOGLE_REDIRECT_URI` value listed in **Authorized redirect URIs** in Google Cloud Console
+- [ ] Production frontend origin listed in **Authorized JavaScript origins** in Google Cloud Console
+- [ ] Google OAuth consent screen is **Published** (not in Testing mode) if real public users need access
+- [ ] Demo seed accounts (`admin@agentguard-demo.local`, etc.) have **NOT** been seeded into the production database. The demo seed is for local development only — its fixed passwords would be a security risk in production.
+- [ ] Redis persistence confirmed enabled on managed Redis provider
 
 ---
 

@@ -5,7 +5,8 @@ check breakdown models (CheckResult, CheckStatus), and caller identity.
 """
 import uuid
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -23,8 +24,8 @@ class CheckStatus(str, Enum):
 
 class CheckResult(BaseModel):
     status: CheckStatus
-    message: Optional[str] = None
-    details: Optional[dict[str, Any]] = None
+    message: str | None = None
+    details: dict[str, Any] | None = None
 
 
 class CallerIdentity(BaseModel):
@@ -40,13 +41,13 @@ class DecisionInput(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     agent_id: uuid.UUID
-    user_id: Optional[uuid.UUID] = None
+    user_id: uuid.UUID | None = None
     tool_name: str = Field(..., min_length=1, max_length=100)
     action: str = Field(..., min_length=1, max_length=100)
     parameters: dict[str, Any] = Field(default_factory=dict)
     estimated_tokens: int = Field(default=0, ge=0)
     estimated_cost: float = Field(default=0.0, ge=0.0)
-    metadata: Optional[dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
 
 class DecisionOutput(BaseModel):
@@ -82,7 +83,7 @@ class PolicyCreateRequest(BaseModel):
     Malformed rules are rejected at the API boundary.
     """
     name: str = Field(..., min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=1000)
+    description: str | None = Field(None, max_length=1000)
     policy_type: str = Field(..., min_length=1, max_length=50)
     rules: dict[str, Any] = Field(..., description="Non-empty rules dict")
     is_active: bool = True
@@ -90,11 +91,11 @@ class PolicyCreateRequest(BaseModel):
 
 class PolicyUpdateRequest(BaseModel):
     """PATCH semantics — all fields optional."""
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=1000)
-    policy_type: Optional[str] = Field(None, min_length=1, max_length=50)
-    rules: Optional[dict[str, Any]] = None
-    is_active: Optional[bool] = None
+    name: str | None = Field(None, min_length=1, max_length=100)
+    description: str | None = Field(None, max_length=1000)
+    policy_type: str | None = Field(None, min_length=1, max_length=50)
+    rules: dict[str, Any] | None = None
+    is_active: bool | None = None
 
 
 class PolicyResponse(BaseModel):
@@ -103,7 +104,7 @@ class PolicyResponse(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     policy_type: str
     rules: dict[str, Any]
     is_active: bool

@@ -4,23 +4,21 @@ All mutations and queries enforce organization_id isolation.
 """
 import uuid
 from decimal import Decimal
-from typing import Any, Optional
-
-from sqlalchemy.orm import Session
+from typing import Any
 
 from app.models.budget import Budget
 from app.repositories.base import OrgScopedRepository
 
 
 class BudgetRepository(OrgScopedRepository):
-    def get_by_id(self, budget_id: uuid.UUID) -> Optional[Budget]:
+    def get_by_id(self, budget_id: uuid.UUID) -> Budget | None:
         return (
             self._base_query(Budget)
             .filter(Budget.id == budget_id)
             .first()
         )
 
-    def get_by_agent_id(self, agent_id: uuid.UUID) -> Optional[Budget]:
+    def get_by_agent_id(self, agent_id: uuid.UUID) -> Budget | None:
         return (
             self._base_query(Budget)
             .filter(Budget.agent_id == agent_id)

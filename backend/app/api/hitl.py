@@ -15,8 +15,7 @@ Invariants:
 """
 import logging
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload
@@ -74,13 +73,13 @@ def _enrich_hitl_response(hitl: HITLRequest) -> HITLRequestResponse:
 
 
 def sweep_expired_hitl_requests(
-    db: Session, organization_id: Optional[uuid.UUID] = None
+    db: Session, organization_id: uuid.UUID | None = None
 ) -> int:
     """Sweep and transition all expired PENDING requests to EXPIRED.
 
     Callable as a periodic job or directly by tests.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     query = db.query(HITLRequest).filter(
         HITLRequest.status == "PENDING",
         HITLRequest.expires_at.isnot(None),
@@ -107,8 +106,8 @@ def _check_lazy_expiration(db: Session, hitl: HITLRequest) -> bool:
     Returns True if the request is or became EXPIRED.
     """
     if hitl.status == "PENDING" and hitl.expires_at is not None:
-        now = datetime.now(timezone.utc)
-        expires_at = hitl.expires_at if hitl.expires_at.tzinfo else hitl.expires_at.replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
+        expires_at = hitl.expires_at if hitl.expires_at.tzinfo else hitl.expires_at.replace(tzinfo=UTC)
         if now >= expires_at:
             hitl.status = "EXPIRED"
             db.commit()
@@ -118,7 +117,7 @@ def _check_lazy_expiration(db: Session, hitl: HITLRequest) -> bool:
 
 @router.get("", response_model=HITLRequestListResponse)
 def list_hitl_requests(
-    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status (e.g. PENDING, APPROVED, DENIED, EXPIRED)"),
+    status_filter: str | None = Query(None, alias="status", description="Filter by status (e.g. PENDING, APPROVED, DENIED, EXPIRED)"),
     limit: int = Query(50, ge=1, le=500, description="Page limit"),
     offset: int = Query(0, ge=0, description="Page offset"),
     db: Session = Depends(get_db),
@@ -176,7 +175,7 @@ def get_hitl_request(
 @router.post("/{hitl_id}/approve", response_model=HITLRequestResponse)
 def approve_hitl_request(
     hitl_id: uuid.UUID,
-    review_data: Optional[HITLReviewRequest] = None,
+    review_data: HITLReviewRequest | None = None,
     db: Session = Depends(get_db),
     current_user: AuthenticatedUser = Depends(require_role(*_HITL_ROLES)),
 ) -> HITLRequestResponse:
@@ -222,7 +221,7 @@ def approve_hitl_request(
         tool_request.tool.name if (tool_request and tool_request.tool) else None
     )
     review_notes = review_data.review_notes if review_data else None
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # -----------------------------------------------------------------------
     # STEP 1: Update status and write HITL_APPROVED audit entry
@@ -265,7 +264,7 @@ def approve_hitl_request(
     except Exception as exc:
         db.rollback()
         logger.error(f"Failed to commit approval decision for HITL {hitl_id}: {exc}")
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to record approval decision in audit log.",
         )
@@ -373,7 +372,7 @@ def approve_hitl_request(
 @router.post("/{hitl_id}/deny", response_model=HITLRequestResponse)
 def deny_hitl_request(
     hitl_id: uuid.UUID,
-    review_data: Optional[HITLReviewRequest] = None,
+    review_data: HITLReviewRequest | None = None,
     db: Session = Depends(get_db),
     current_user: AuthenticatedUser = Depends(require_role(*_HITL_ROLES)),
 ) -> HITLRequestResponse:
@@ -411,7 +410,7 @@ def deny_hitl_request(
         tool_request.tool.name if (tool_request and tool_request.tool) else None
     )
     review_notes = review_data.review_notes if review_data else None
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Update status to DENIED
     hitl.status = "DENIED"
@@ -448,7 +447,7 @@ def deny_hitl_request(
     except Exception as exc:
         db.rollback()
         logger.error(f"Failed to commit denial decision for HITL {hitl_id}: {exc}")
-        raise HTTPException(
+        raise HTTPException(  # noqa: B904
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to record denial decision in audit log.",
         )

@@ -1,7 +1,11 @@
 """Auth API router: register, login, me, API key management."""
+import logging
+import traceback
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from datetime import UTC, datetime
+from typing import List
+
+_log = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -20,9 +24,9 @@ from app.schemas.auth import (
     APIKeyCreateResponse,
     APIKeyResponse,
     APIKeyRevokeResponse,
+    OAuthExchangeRequest,
     RoleEnum,
     TokenResponse,
-    OAuthExchangeRequest,
     UserLoginRequest,
     UserRegisterRequest,
     UserResponse,
@@ -36,6 +40,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 from fastapi.responses import RedirectResponse
+
+from app.core.config import settings
 from app.services.oauth import (
     consume_oauth_exchange_code,
     exchange_google_code,
@@ -45,7 +51,6 @@ from app.services.oauth import (
     validate_oauth_state,
     verify_google_id_token,
 )
-from app.core.config import settings
 
 
 @router.post(
@@ -175,7 +180,7 @@ def login(request: UserLoginRequest, db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 @router.get("/google/login")
-def google_login(redirect_target: Optional[str] = None):
+def google_login(redirect_target: str | None = None):
     """Initiate Google OAuth 2.0 Authorization Code flow with CSRF state token."""
     state = generate_oauth_state(redirect_target=redirect_target)
     auth_url = get_google_auth_url(state=state)
@@ -184,9 +189,9 @@ def google_login(redirect_target: Optional[str] = None):
 
 @router.get("/google/callback")
 def google_callback(
-    code: Optional[str] = None,
-    state: Optional[str] = None,
-    error: Optional[str] = None,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
     db: Session = Depends(get_db),
 ):
     """Handle Google OAuth 2.0 redirect callback.
@@ -194,6 +199,28 @@ def google_callback(
     Exchanges authorization code for verified Google ID token, enforces state CSRF
     verification, resolves or auto-provisions the user identity, and issues a JWT token.
     """
+    try:
+        return _google_callback_impl(code=code, state=state, error=error, db=db)
+    except Exception as _top_exc:
+        _log.error(
+            "OAUTH CALLBACK UNHANDLED EXCEPTION: %s\n%s",
+            _top_exc,
+            traceback.format_exc(),
+        )
+        frontend_url = settings.FRONTEND_URL
+        return RedirectResponse(
+            url=f"{frontend_url}/login?error=internal_error",
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+        )
+
+
+def _google_callback_impl(
+    code: str | None,
+    state: str | None,
+    error: str | None,
+    db: Session,
+):
+    """Inner implementation of the Google OAuth callback (separated for clean exception tracing)."""
     frontend_url = settings.FRONTEND_URL
 
     if error:
@@ -224,6 +251,7 @@ def google_callback(
             raise ValueError("Google did not return an id_token")
         id_info = verify_google_id_token(id_token_str)
     except Exception as exc:
+        _log.error("OAuth token exchange/verification failed: %s\n%s", exc, traceback.format_exc())
         return RedirectResponse(
             url=f"{frontend_url}/login?error=token_verification_failed",
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
@@ -233,24 +261,32 @@ def google_callback(
     full_name = id_info.get("name")
 
     # 3. Account resolution using globally unique email
-    user = get_user_by_email(db, email)
-    if not user:
-        # New Google user flow: auto-provision organization with clear name & ADMIN role
-        domain = email.split("@")[-1].split(".")[0]
-        org_slug = f"{domain}-{uuid.uuid4().hex[:6]}"
-        org_name = f"{full_name}'s Organization" if full_name else f"{domain.capitalize()} Workspace"
-        org = create_organization(db, name=org_name, slug=org_slug)
-        role = get_or_create_role(db, org.id, RoleEnum.ADMIN.value)
-        user = create_user(
-            db,
-            organization_id=org.id,
-            email=email,
-            full_name=full_name,
-            role_id=role.id,
-            hashed_password=None,
+    try:
+        user = get_user_by_email(db, email)
+        if not user:
+            # New Google user flow: auto-provision organization with clear name & ADMIN role
+            domain = email.split("@")[-1].split(".")[0] if "@" in email else "workspace"
+            org_slug = f"{domain}-{uuid.uuid4().hex[:6]}"
+            org_name = f"{full_name}'s Organization" if full_name else f"{domain.capitalize()} Workspace"
+            org = create_organization(db, name=org_name, slug=org_slug)
+            role = get_or_create_role(db, org.id, RoleEnum.ADMIN.value)
+            user = create_user(
+                db,
+                organization_id=org.id,
+                email=email,
+                full_name=full_name,
+                role_id=role.id,
+                hashed_password=None,
+            )
+            db.commit()
+            db.refresh(user)
+    except Exception as exc:
+        db.rollback()
+        _log.error("Failed to provision/retrieve OAuth user: %s\n%s", exc, traceback.format_exc())
+        return RedirectResponse(
+            url=f"{frontend_url}/login?error=account_provision_failed",
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
         )
-        db.commit()
-        db.refresh(user)
 
     if not user.is_active:
         return RedirectResponse(
@@ -271,6 +307,8 @@ def google_callback(
     exchange_code = store_oauth_exchange_code(access_token, ttl_seconds=60)
 
     redirect_target = state_payload.get("redirect_target") or f"{frontend_url}/login"
+    if redirect_target.rstrip("/") == frontend_url.rstrip("/"):
+        redirect_target = f"{frontend_url}/login"
     separator = "&" if "?" in redirect_target else "?"
     return RedirectResponse(
         url=f"{redirect_target}{separator}code={exchange_code}",
@@ -309,7 +347,7 @@ def get_me(current_user: AuthenticatedUser = Depends(get_current_user)):
         email=current_user.email,
         full_name=current_user.full_name,
         is_active=current_user.is_active,
-        created_at=datetime.now(timezone.utc),  # placeholder; real value from DB if needed
+        created_at=datetime.now(UTC),  # placeholder; real value from DB if needed
     )
 
 
@@ -389,7 +427,7 @@ def revoke_api_key(
     return APIKeyRevokeResponse(
         id=key.id,
         is_active=key.is_active,
-        revoked_at=datetime.now(timezone.utc),
+        revoked_at=datetime.now(UTC),
     )
 
 

@@ -2,10 +2,8 @@
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
-
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -30,14 +28,14 @@ class RiskLevel(str, Enum):
 
 class AgentCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=1000)
+    description: str | None = Field(None, max_length=1000)
     status: AgentStatus = AgentStatus.ACTIVE
 
 
 class AgentUpdateRequest(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=1000)
-    status: Optional[AgentStatus] = None
+    name: str | None = Field(None, min_length=1, max_length=100)
+    description: str | None = Field(None, max_length=1000)
+    status: AgentStatus | None = None
 
 
 class AgentResponse(BaseModel):
@@ -46,7 +44,7 @@ class AgentResponse(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     status: str
     created_at: datetime
     updated_at: datetime
@@ -65,16 +63,16 @@ class AgentCreateResponse(AgentResponse):
 
 class ToolCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=1000)
+    description: str | None = Field(None, max_length=1000)
     risk_level: RiskLevel = RiskLevel.LOW
     is_active: bool = True
 
 
 class ToolUpdateRequest(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=1000)
-    risk_level: Optional[RiskLevel] = None
-    is_active: Optional[bool] = None
+    name: str | None = Field(None, min_length=1, max_length=100)
+    description: str | None = Field(None, max_length=1000)
+    risk_level: RiskLevel | None = None
+    is_active: bool | None = None
 
 
 class ToolResponse(BaseModel):
@@ -83,7 +81,7 @@ class ToolResponse(BaseModel):
     id: uuid.UUID
     organization_id: uuid.UUID
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     risk_level: str
     is_active: bool
     created_at: datetime

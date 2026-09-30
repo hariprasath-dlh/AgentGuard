@@ -5,8 +5,8 @@ token exchange, and cryptographically verified ID token decoding via google-auth
 """
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any, Dict
 
 import httpx
 import jwt
@@ -21,18 +21,19 @@ GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 
 
-def generate_oauth_state(redirect_target: Optional[str] = None) -> str:
+def generate_oauth_state(redirect_target: str | None = None) -> str:
     """Generate a signed, timestamped, tamper-proof state token for CSRF defense."""
+    default_target = f"{settings.FRONTEND_URL.rstrip('/')}/login"
     payload = {
         "nonce": uuid.uuid4().hex,
-        "redirect_target": redirect_target or settings.FRONTEND_URL,
-        "iat": datetime.now(timezone.utc),
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=10),
+        "redirect_target": redirect_target or default_target,
+        "iat": datetime.now(UTC),
+        "exp": datetime.now(UTC) + timedelta(minutes=10),
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
 
 
-def validate_oauth_state(state: str) -> Optional[Dict[str, Any]]:
+def validate_oauth_state(state: str) -> Dict[str, Any] | None:
     """Validate the cryptographic signature and expiration of an OAuth state parameter.
 
     Returns the decoded payload if valid, or None if tampered/expired.
@@ -137,7 +138,7 @@ def store_oauth_exchange_code(access_token: str, ttl_seconds: int = 60) -> str:
     return code
 
 
-def consume_oauth_exchange_code(code: str) -> Optional[str]:
+def consume_oauth_exchange_code(code: str) -> str | None:
     """Retrieve and immediately invalidate a one-time OAuth exchange code (single-use guarantee).
 
     Returns access_token if code was valid and unconsumed, or None otherwise.

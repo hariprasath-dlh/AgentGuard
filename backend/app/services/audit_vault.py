@@ -40,8 +40,9 @@ import json
 import logging
 import time
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
+
 from sqlalchemy.orm import Session
 
 from app.models.audit_log import AuditLog
@@ -55,14 +56,14 @@ GENESIS_HASH: str = "0" * 64
 
 def serialize_audit_event(
     organization_id: str,
-    agent_id: Optional[str],
+    agent_id: str | None,
     request_id: str,
     event_type: str,
-    decision: Optional[str],
-    tool_name: Optional[str],
+    decision: str | None,
+    tool_name: str | None,
     sequence_number: int,
     timestamp: str,
-    payload: Optional[dict[str, Any]] = None,
+    payload: dict[str, Any] | None = None,
 ) -> str:
     """Deterministic, canonical serialization of audit event data for SHA-256 hashing.
 
@@ -85,21 +86,21 @@ def serialize_audit_event(
 
 def compute_audit_hash(previous_hash: str, canonical_event_data: str) -> str:
     """Compute SHA-256 hash of previous_hash concatenated with canonical_event_data."""
-    combined = f"{previous_hash}{canonical_event_data}".encode("utf-8")
+    combined = f"{previous_hash}{canonical_event_data}".encode()
     return hashlib.sha256(combined).hexdigest()
 
 
 def record_audit_log(
     db: Session,
     organization_id: uuid.UUID,
-    agent_id: Optional[uuid.UUID],
-    tool_id: Optional[uuid.UUID],
+    agent_id: uuid.UUID | None,
+    tool_id: uuid.UUID | None,
     event_type: str,
-    decision: Optional[str],
+    decision: str | None,
     payload: dict[str, Any],
     request_id: uuid.UUID,
-    tool_name: Optional[str],
-    audit_log_id: Optional[uuid.UUID] = None,
+    tool_name: str | None,
+    audit_log_id: uuid.UUID | None = None,
 ) -> AuditLog:
     """Create and append an AuditLog entry to the organization's hash chain.
 
@@ -138,7 +139,7 @@ def record_audit_log(
 
     # 3. Establish single source of truth for timestamp; stamp canonical fields into payload
     #    so the verifier can reconstruct the exact same canonical_data from stored rows alone.
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     timestamp_str = now.isoformat()
     payload["timestamp"] = timestamp_str
     # _request_id and _tool_name are system-stamped (underscore prefix) so they never
@@ -267,7 +268,7 @@ def verify_organization_chain(db: Session, organization_id: uuid.UUID) -> dict[s
         payload = log.payload or {}
         timestamp_str = payload.get("timestamp")
         if not timestamp_str and log.created_at:
-            timestamp_str = log.created_at.astimezone(timezone.utc).isoformat()
+            timestamp_str = log.created_at.astimezone(UTC).isoformat()
 
         request_id_str = payload.get("_request_id") or payload.get("request_id") or str(log.id)
         tool_name_val = payload.get("_tool_name")  # None is a valid value here

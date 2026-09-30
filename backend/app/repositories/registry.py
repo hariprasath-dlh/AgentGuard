@@ -4,30 +4,25 @@ All mutations and queries enforce organization_id isolation.
 No business logic lives here — only DB access patterns.
 """
 import uuid
-from typing import Optional
-
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
 
 from app.models.agent import Agent
 from app.models.permission import AgentToolPermission
 from app.models.tool import Tool
 from app.repositories.base import OrgScopedRepository
 
-
 # ---------------------------------------------------------------------------
 # Agent repository
 # ---------------------------------------------------------------------------
 
 class AgentRepository(OrgScopedRepository):
-    def get_by_id(self, agent_id: uuid.UUID) -> Optional[Agent]:
+    def get_by_id(self, agent_id: uuid.UUID) -> Agent | None:
         return (
             self._base_query(Agent)
             .filter(Agent.id == agent_id)
             .first()
         )
 
-    def get_by_name(self, name: str) -> Optional[Agent]:
+    def get_by_name(self, name: str) -> Agent | None:
         return (
             self._base_query(Agent)
             .filter(Agent.name == name)
@@ -49,7 +44,7 @@ class AgentRepository(OrgScopedRepository):
         self,
         *,
         name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
         status: str = "ACTIVE",
     ) -> Agent:
         agent = Agent(
@@ -81,14 +76,14 @@ class AgentRepository(OrgScopedRepository):
 # ---------------------------------------------------------------------------
 
 class ToolRepository(OrgScopedRepository):
-    def get_by_id(self, tool_id: uuid.UUID) -> Optional[Tool]:
+    def get_by_id(self, tool_id: uuid.UUID) -> Tool | None:
         return (
             self._base_query(Tool)
             .filter(Tool.id == tool_id)
             .first()
         )
 
-    def get_by_name(self, name: str) -> Optional[Tool]:
+    def get_by_name(self, name: str) -> Tool | None:
         return (
             self._base_query(Tool)
             .filter(Tool.name == name)
@@ -99,13 +94,13 @@ class ToolRepository(OrgScopedRepository):
         return self._base_query(Tool).all()
 
     def list_active(self) -> list[Tool]:
-        return self._base_query(Tool).filter(Tool.is_active == True).all()
+        return self._base_query(Tool).filter(Tool.is_active == True).all()  # noqa: E712
 
     def create(
         self,
         *,
         name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
         risk_level: str = "LOW",
         is_active: bool = True,
     ) -> Tool:
@@ -133,7 +128,7 @@ class ToolRepository(OrgScopedRepository):
 # ---------------------------------------------------------------------------
 
 class PermissionRepository(OrgScopedRepository):
-    def get(self, agent_id: uuid.UUID, tool_id: uuid.UUID) -> Optional[AgentToolPermission]:
+    def get(self, agent_id: uuid.UUID, tool_id: uuid.UUID) -> AgentToolPermission | None:
         """Single indexed lookup — what Phase 5 policy engine will call."""
         return (
             self._base_query(AgentToolPermission)
@@ -144,7 +139,7 @@ class PermissionRepository(OrgScopedRepository):
             .first()
         )
 
-    def get_by_id(self, permission_id: uuid.UUID) -> Optional[AgentToolPermission]:
+    def get_by_id(self, permission_id: uuid.UUID) -> AgentToolPermission | None:
         return (
             self._base_query(AgentToolPermission)
             .filter(AgentToolPermission.id == permission_id)

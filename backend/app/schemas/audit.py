@@ -4,7 +4,8 @@ Defines response models for audit log retrieval and hash chain verification.
 """
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -14,14 +15,14 @@ class AuditLogResponse(BaseModel):
 
     id: uuid.UUID
     organization_id: uuid.UUID
-    agent_id: Optional[uuid.UUID] = None
-    tool_id: Optional[uuid.UUID] = None
+    agent_id: uuid.UUID | None = None
+    tool_id: uuid.UUID | None = None
     event_type: str
-    decision: Optional[str] = None
-    payload: Optional[dict[str, Any]] = None
-    previous_hash: Optional[str] = None
+    decision: str | None = None
+    payload: dict[str, Any] | None = None
+    previous_hash: str | None = None
     current_hash: str
-    sequence_number: Optional[int] = None
+    sequence_number: int | None = None
     created_at: datetime
 
 
@@ -40,9 +41,9 @@ class AuditVerificationResponse(BaseModel):
     status: str  # "VALID" or "INVALID"
     total_records: int
     message: str
-    broken_record_id: Optional[uuid.UUID] = None
-    broken_sequence_number: Optional[int] = None
-    error_type: Optional[str] = None
-    details: Optional[str] = None
-    early_exit_note: Optional[str] = None
-    duration_ms: Optional[float] = None
+    broken_record_id: uuid.UUID | None = None
+    broken_sequence_number: int | None = None
+    error_type: str | None = None
+    details: str | None = None
+    early_exit_note: str | None = None
+    duration_ms: float | None = None

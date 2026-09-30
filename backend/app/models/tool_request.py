@@ -1,6 +1,7 @@
 import typing
 import uuid
-from sqlalchemy import Float, ForeignKey, JSON, String, Text, Uuid
+
+from sqlalchemy import JSON, Float, ForeignKey, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -36,23 +37,23 @@ class ToolRequest(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         nullable=False,
         index=True,
     )
-    policy_id: Mapped[typing.Optional[uuid.UUID]] = mapped_column(
+    policy_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("policies.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    audit_log_id: Mapped[typing.Optional[uuid.UUID]] = mapped_column(
+    audit_log_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("audit_logs.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
     decision: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
-    reason: Mapped[typing.Optional[str]] = mapped_column(Text, nullable=True)
-    input_payload: Mapped[typing.Optional[dict]] = mapped_column(JSON, nullable=True)
-    output_payload: Mapped[typing.Optional[dict]] = mapped_column(JSON, nullable=True)
-    latency_ms: Mapped[typing.Optional[float]] = mapped_column(Float, nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    input_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    output_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    latency_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Relationships
     organization: Mapped["Organization"] = relationship(

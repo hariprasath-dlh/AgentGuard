@@ -14,19 +14,19 @@ run correctly without Redis.
 """
 import os
 import uuid
-import pytest
 from unittest.mock import patch
-from sqlalchemy import create_engine, event, text
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import sessionmaker
-from fastapi.testclient import TestClient
 
 # ── IMPORTANT: import all models BEFORE importing Base so that their
 # ── __tablename__ declarations are registered on the shared Base.metadata.
 import app.models  # noqa: F401 — registers all ORM models on Base
+import pytest
 from app.core.database import Base, get_db
 from app.main import app
 from app.services.policy_engine import default_budget_checker, default_rate_limit_checker
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, event
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import sessionmaker
 
 
 # ---------------------------------------------------------------------------
@@ -34,7 +34,6 @@ from app.services.policy_engine import default_budget_checker, default_rate_limi
 # ---------------------------------------------------------------------------
 def _redis_available() -> bool:
     try:
-        import redis as _redis
         from app.core.redis import get_redis_client
         client = get_redis_client()
         client.ping()
@@ -121,7 +120,6 @@ def client(db_session):
     app.dependency_overrides[get_db] = override_get_db
 
     # Patch the factory so PolicyEngine gets stub checkers (no Redis needed)
-    from app.services.factory import create_policy_engine as _real_cpe
     from app.services.policy_engine import PolicyEngine
 
     def _stub_create_policy_engine(db, redis_client=None):

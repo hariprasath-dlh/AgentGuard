@@ -29,6 +29,10 @@ function Index() {
 
   useEffect(() => {
     if (loading) return;
+    if (typeof window !== "undefined" && window.location.search) {
+      navigate({ to: `/login${window.location.search}`, replace: true });
+      return;
+    }
     navigate({ to: user ? landingRoute(user.role) : "/login", replace: true });
   }, [loading, user, navigate]);
 

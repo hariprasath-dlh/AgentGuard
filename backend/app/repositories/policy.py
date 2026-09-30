@@ -3,29 +3,28 @@
 All mutations and queries enforce organization_id isolation.
 """
 import uuid
-from typing import Any, Optional
-from sqlalchemy.orm import Session
+from typing import Any
 
 from app.models.policy import Policy
 from app.repositories.base import OrgScopedRepository
 
 
 class PolicyRepository(OrgScopedRepository):
-    def get_by_id(self, policy_id: uuid.UUID) -> Optional[Policy]:
+    def get_by_id(self, policy_id: uuid.UUID) -> Policy | None:
         return (
             self._base_query(Policy)
             .filter(Policy.id == policy_id)
             .first()
         )
 
-    def get_by_type(self, policy_type: str) -> Optional[Policy]:
+    def get_by_type(self, policy_type: str) -> Policy | None:
         return (
             self._base_query(Policy)
-            .filter(Policy.policy_type == policy_type, Policy.is_active == True)
+            .filter(Policy.policy_type == policy_type, Policy.is_active == True)  # noqa: E712
             .first()
         )
 
-    def get_by_name(self, name: str) -> Optional[Policy]:
+    def get_by_name(self, name: str) -> Policy | None:
         return (
             self._base_query(Policy)
             .filter(Policy.name == name)
@@ -35,7 +34,7 @@ class PolicyRepository(OrgScopedRepository):
     def list_active(self) -> list[Policy]:
         return (
             self._base_query(Policy)
-            .filter(Policy.is_active == True)
+            .filter(Policy.is_active == True)  # noqa: E712
             .all()
         )
 
@@ -49,7 +48,7 @@ class PolicyRepository(OrgScopedRepository):
         name: str,
         policy_type: str,
         rules: dict[str, Any],
-        description: Optional[str] = None,
+        description: str | None = None,
         is_active: bool = True,
     ) -> Policy:
         policy = Policy(

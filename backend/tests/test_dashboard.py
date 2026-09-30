@@ -12,13 +12,11 @@ Tests cover:
 Note: dashboard/stats and dashboard/activity hit real PostgreSQL (via the
 shared engine fixture). SQLite is also used when TEST_DATABASE_URL is not set.
 """
-import uuid
 
-import pytest
-from fastapi.testclient import TestClient
+
+from datetime import UTC
 
 from tests.conftest import auth_headers, login_user, make_unique_slug, register_user
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -182,13 +180,14 @@ class TestDashboardStats:
     def test_dashboard_stats_utc_boundary_synchronization(self):
         """Explicitly verify that _today_start() uses UTC midnight (00:00:00)
         and aligns exactly with Phase 6's RedisBudgetChecker daily-cost-limit reset."""
-        from datetime import datetime, timezone
+        from datetime import datetime
+
         from app.api.dashboard import _today_start
         from app.services.budget_guard import RedisBudgetChecker
 
         start = _today_start()
-        now_utc = datetime.now(timezone.utc)
-        assert start.tzinfo == timezone.utc
+        now_utc = datetime.now(UTC)
+        assert start.tzinfo == UTC
         assert start.hour == 0 and start.minute == 0 and start.second == 0 and start.microsecond == 0
         assert start.strftime("%Y-%m-%d") == now_utc.strftime("%Y-%m-%d")
 

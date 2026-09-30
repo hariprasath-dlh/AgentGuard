@@ -12,7 +12,7 @@
           "auth"
         ],
         "summary": "Register",
-        "description": "Register a new user.\n\nOrganization creation logic (ambiguity noted in Phase 3 report):\n- If `organization_slug` is provided and the org exists \u2192 join that org.\n- If `organization_slug` is provided and the org does NOT exist \u2192 create org + make this user ADMIN.\n- If no `organization_slug` is provided \u2192 generate slug from email domain + uuid4 suffix,\n  create a new org, and make this user ADMIN.",
+        "description": "Register a new user.\n\nEmail is globally unique. Organization creation logic:\n- If `organization_slug` is provided and the org exists \u2192 join that org.\n- If `organization_slug` is provided and the org does NOT exist \u2192 create org + make this user ADMIN.\n- If no `organization_slug` is provided \u2192 generate slug from email domain + uuid4 suffix,\n  create a new org, and make this user ADMIN.",
         "operationId": "register_api_v1_auth_register_post",
         "requestBody": {
           "content": {
@@ -61,6 +61,176 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UserLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/google/login": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Google Login",
+        "description": "Initiate Google OAuth 2.0 Authorization Code flow with CSRF state token.",
+        "operationId": "google_login_api_v1_auth_google_login_get",
+        "parameters": [
+          {
+            "name": "redirect_target",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Redirect Target"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/google/callback": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Google Callback",
+        "description": "Handle Google OAuth 2.0 redirect callback.\n\nExchanges authorization code for verified Google ID token, enforces state CSRF\nverification, resolves or auto-provisions the user identity, and issues a JWT token.",
+        "operationId": "google_callback_api_v1_auth_google_callback_get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/google/exchange": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Google Exchange",
+        "description": "Exchange a short-lived, single-use one-time OAuth code for the user's JWT access token.\n\nEnforces single-use consumption and eliminates JWT credential leakage in URL query parameters.",
+        "operationId": "google_exchange_api_v1_auth_google_exchange_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthExchangeRequest"
               }
             }
           },
@@ -3002,6 +3172,21 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "OAuthExchangeRequest": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Code",
+            "description": "One-time opaque OAuth exchange code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "OAuthExchangeRequest"
+      },
       "PermissionGrantRequest": {
         "properties": {
           "agent_id": {
@@ -3583,6 +3768,28 @@
             "type": "string",
             "format": "uuid",
             "title": "Organization Id"
+          },
+          "organization_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Name"
+          },
+          "organization_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Slug"
           },
           "role_id": {
             "anyOf": [

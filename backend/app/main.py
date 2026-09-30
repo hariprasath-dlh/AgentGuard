@@ -1,5 +1,6 @@
 import json
 import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -38,7 +39,6 @@ from app.api.permissions import router as permissions_router
 from app.api.policies import router as policies_router
 from app.api.tools import router as tools_router
 from app.core.config import settings
-
 
 app = FastAPI(
     title="AgentGuard Core Engine",

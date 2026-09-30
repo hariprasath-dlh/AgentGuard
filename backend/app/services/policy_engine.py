@@ -20,11 +20,11 @@ over structured input fields.
 import json
 import re
 import uuid
-from typing import Any, Callable, Optional, Protocol, Tuple
+from typing import Any, Protocol, Tuple
+
 from sqlalchemy.orm import Session
 
 from app.models.agent import Agent
-from app.models.policy import Policy
 from app.models.tool import Tool
 from app.repositories.policy import PolicyRepository
 from app.repositories.registry import AgentRepository, PermissionRepository, ToolRepository
@@ -37,7 +37,6 @@ from app.schemas.policy import (
     DecisionOutput,
 )
 
-
 # ---------------------------------------------------------------------------
 # Protocols / Types for Injected Checkers (Phase 6 stubs)
 # ---------------------------------------------------------------------------
@@ -49,7 +48,7 @@ class BudgetChecker(Protocol):
         input_data: DecisionInput,
         agent: Agent,
         tool: Tool,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, str | None]:
         ...
 
 
@@ -60,7 +59,7 @@ class RateLimitChecker(Protocol):
         input_data: DecisionInput,
         agent: Agent,
         tool: Tool,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Tuple[bool, str | None]:
         ...
 
 
@@ -69,7 +68,7 @@ def default_budget_checker(
     input_data: DecisionInput,
     agent: Agent,
     tool: Tool,
-) -> Tuple[bool, Optional[str]]:
+) -> Tuple[bool, str | None]:
     """Phase 6 stub: always passes. Real Redis-backed check injected in Phase 6."""
     return True, None
 
@@ -79,7 +78,7 @@ def default_rate_limit_checker(
     input_data: DecisionInput,
     agent: Agent,
     tool: Tool,
-) -> Tuple[bool, Optional[str]]:
+) -> Tuple[bool, str | None]:
     """Phase 6 stub: always passes. Real Redis-backed check injected in Phase 6."""
     return True, None
 
@@ -121,7 +120,7 @@ MAX_ESTIMATED_COST = 10000.0
 
 def check_auth(
     input_data: DecisionInput,
-    caller: Optional[CallerIdentity],
+    caller: CallerIdentity | None,
 ) -> CheckResult:
     """Check 1: AUTH.
     Confirms caller identity is present, authenticated, and well-formed.
@@ -157,7 +156,7 @@ def check_agent_status(
     db: Session,
     org_id: uuid.UUID,
     agent_id: uuid.UUID,
-) -> Tuple[CheckResult, Optional[Agent]]:
+) -> Tuple[CheckResult, Agent | None]:
     """Check 2: AGENT STATUS.
     Verifies agent exists in the organization and is ACTIVE (not soft-deleted or suspended).
     """
@@ -198,7 +197,7 @@ def check_tool_permission(
     org_id: uuid.UUID,
     agent: Agent,
     tool_name: str,
-) -> Tuple[CheckResult, Optional[Tool]]:
+) -> Tuple[CheckResult, Tool | None]:
     """Check 3: TOOL PERMISSION.
     Verifies agent has an explicit, active agent_tool_permissions grant for this tool.
     Uses PermissionRepository indexed lookup on (agent_id, tool_id).
@@ -395,7 +394,7 @@ def check_prohibited_parameters(
 
     compiled = [re.compile(p) for p in patterns]
 
-    def _inspect_value(val: Any) -> Optional[str]:
+    def _inspect_value(val: Any) -> str | None:
         if isinstance(val, str):
             for pattern in compiled:
                 if pattern.search(val):
@@ -499,8 +498,8 @@ class PolicyEngine:
     def __init__(
         self,
         db: Session,
-        budget_checker: Optional[BudgetChecker] = None,
-        rate_limit_checker: Optional[RateLimitChecker] = None,
+        budget_checker: BudgetChecker | None = None,
+        rate_limit_checker: RateLimitChecker | None = None,
     ):
         self.db = db
         self.budget_checker = budget_checker or default_budget_checker
@@ -509,7 +508,7 @@ class PolicyEngine:
     def evaluate(
         self,
         input_data: DecisionInput,
-        caller: Optional[CallerIdentity] = None,
+        caller: CallerIdentity | None = None,
     ) -> DecisionOutput:
         """Evaluate a tool-call request through the deterministic pipeline."""
         checks: dict[str, CheckResult] = {

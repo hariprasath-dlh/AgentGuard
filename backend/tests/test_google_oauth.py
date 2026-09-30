@@ -1,10 +1,8 @@
 """Tests for Google OAuth 2.0 and Global Email Uniqueness."""
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
 from app.main import app
@@ -14,9 +12,9 @@ from app.models.user import User
 from app.schemas.auth import RoleEnum
 from app.services.oauth import (
     generate_oauth_state,
-    get_google_auth_url,
     validate_oauth_state,
 )
+from fastapi.testclient import TestClient
 
 client = TestClient(app)
 

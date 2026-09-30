@@ -1,0 +1,30 @@
+target-version = "py311"
+line-length = 120
+
+[lint]
+# Catches real bugs and import hygiene without noisy style churn
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes (undefined names, unused imports)
+    "I",   # isort
+    "B",   # flake8-bugbear (common bugs)
+    "UP",  # pyupgrade (modernise syntax)
+]
+ignore = [
+    "E501",   # Line too long - covered by line-length
+    "E402",   # Module import not at top of file - intentional in conftest/seed patching
+    "B008",   # Function call in default argument (FastAPI Depends pattern)
+    "UP007",  # Use X | Y instead of Optional[X] - keep Optional for readability
+    "UP006",  # Use type instead of Type[] - minor
+    "UP035",  # Deprecated typing imports (List, Dict, etc) - cosmetic
+    "UP042",  # Replace StrEnum mixin - minor style choice
+    "W293",   # Blank line with whitespace - cosmetic
+]
+
+[lint.per-file-ignores]
+# Test files: fixtures use noqa imports, redefined-outer-name, and test-specific patterns.
+# The glob must match the path as seen from the ruff.toml's parent directory.
+"tests/**" = ["F401", "F811", "F841", "B017", "E741", "B007"]
+# When run from repo root with backend/tests/** path
+"backend/tests/**" = ["F401", "F811", "F841", "B017", "E741", "B007"]

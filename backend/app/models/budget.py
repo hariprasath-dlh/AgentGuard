@@ -1,6 +1,7 @@
 import typing
 import uuid
 from decimal import Decimal
+
 from sqlalchemy import ForeignKey, Integer, Numeric, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,12 +29,12 @@ class Budget(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         unique=True,
         index=True,
     )
-    max_requests_per_minute: Mapped[typing.Optional[int]] = mapped_column(Integer, nullable=True)
-    max_requests_per_day: Mapped[typing.Optional[int]] = mapped_column(Integer, nullable=True)
-    max_budget_per_session: Mapped[typing.Optional[Decimal]] = mapped_column(
+    max_requests_per_minute: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_requests_per_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_budget_per_session: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 4), nullable=True
     )
-    max_budget_per_day: Mapped[typing.Optional[Decimal]] = mapped_column(
+    max_budget_per_day: Mapped[Decimal | None] = mapped_column(
         Numeric(12, 4), nullable=True
     )
     current_spend: Mapped[Decimal] = mapped_column(

@@ -33,9 +33,59 @@ Autonomous agents authenticate via the `X-API-Key` header (or as a Bearer token 
 
 User passwords are hashed with **bcrypt** via the `passlib` library. Plaintext passwords are never stored.
 
+### Google OAuth 2.0 ("Continue with Google")
+
+AgentGuard supports Google OAuth 2.0 Authorization Code flow for human dashboard users:
+
+#### Flow Summary
+
+1. `GET /api/v1/auth/google/login` — generates a cryptographically signed CSRF `state` JWT (HS256, 10-minute expiry) and redirects to Google's authorization endpoint with `email` and `profile` scopes.
+2. Google authenticates the user and redirects to `GOOGLE_REDIRECT_URI` (`GET /api/v1/auth/google/callback`).
+3. The callback validates the `state` JWT first (CSRF protection — any tampered or expired `state` immediately redirects to `/login?error=invalid_or_expired_state`).
+4. The `code` is exchanged for Google tokens via `https://oauth2.googleapis.com/token`.
+5. The Google **ID token** is verified for:
+   - Signature (via Google's public key endpoint)
+   - `aud` audience (must match `GOOGLE_CLIENT_ID` exactly)
+   - Token expiry
+6. The verified email is looked up globally (not per-org) in the `users` table. If no account exists, one is auto-provisioned with a new organization and ADMIN role.
+7. A **one-time, 60-second opaque exchange code** is generated and placed in the redirect URL (`?code=<exchange_code>`) to the frontend.
+8. The frontend calls `POST /api/v1/auth/google/exchange` to exchange the code for the actual JWT access token.
+
+#### Security Properties of This Design
+
+| Property | How Enforced |
+|----------|--------------|
+| **CSRF protection** | Signed `state` JWT verified before any code exchange. Tampered or expired state → immediate error redirect, no code consumed. |
+| **JWT never in URL** | The redirect URL contains only a short-lived opaque exchange code, not the JWT. This prevents the token appearing in browser history, Referer headers, or server access logs. |
+| **Single-use code** | The exchange code is consumed atomically from an in-process store. Any second use returns 400, preventing replay attacks. |
+| **ID token verification** | Google ID token signature and `aud` (audience) are verified before any user is resolved. A token from a different Google project cannot authenticate. |
+| **Email uniqueness** | User identity is globally unique on `email` (enforced via `UNIQUE` constraint across all organizations). A user with the same email cannot create duplicate accounts via OAuth vs. email/password. |
+| **`hashed_password` nullable** | Google-only accounts have `hashed_password = NULL`. They cannot log in via the email/password endpoint — no password guessing is possible because no password exists. |
+
+#### Google Cloud Console Requirements
+
+For Google OAuth to function:
+- The `GOOGLE_REDIRECT_URI` value must be listed in **Authorized redirect URIs** in the OAuth client configuration.
+- The production frontend origin must be listed in **Authorized JavaScript origins**.
+- The OAuth consent screen must be **Published** (not in Testing mode) before non-test users can sign in. In Testing mode, only users explicitly added as test users are permitted.
+
 ---
 
-## RBAC Matrix
+## Global Email Uniqueness
+
+The `users.email` column has a `UNIQUE` constraint across the entire table (not scoped per organization). This was a deliberate architectural decision, introduced in Alembic migration `3f8a9e1b2c4d_make_email_globally_unique.py`.
+
+**Rationale:** Google ID tokens identify users by their verified email address. If email were only unique per-organization, a user with `alice@gmail.com` could create two accounts — one via email/password in Org A, and one via Google OAuth in Org B. When Alice later tried "Continue with Google", the system would have no safe way to resolve which account to use. Global uniqueness means one real person always maps to exactly one account, and the OAuth and email/password flows are mutually exclusive for the same email.
+
+**Consequence:** An organization cannot have two users with the same email across the system. This is acceptable for the current single-tenant-per-deployment use case.
+
+---
+
+## `hitl_requests.reviewer_id` ON DELETE RESTRICT
+
+The `hitl_requests.reviewer_id` foreign key (referencing `users.id`) uses `ON DELETE RESTRICT`, introduced in Alembic migration `4a7b2c9d1e3f_restrict_user_fk_on_hitl_requests.py`.
+
+**Rationale:** An `ON DELETE CASCADE` or `SET NULL` would silently destroy the audit trail of who approved or denied a high-risk action. Knowing which human reviewed a pending HITL request is part of the evidentiary record. The `RESTRICT` constraint means you cannot delete a user who has reviewed HITL requests, preserving audit integrity. Deleting such a user requires archiving or re-assigning the reviews first.
 
 Every authenticated user has exactly one role within their organization. The following matrix shows which roles can access which endpoints, as enforced by the `require_role()` dependency in the actual route handlers:
 
@@ -76,6 +126,9 @@ Every authenticated user has exactly one role within their organization. The fol
 | **Auth** | | | | | |
 | POST /auth/register | Public | | | | |
 | POST /auth/login | Public | | | | |
+| GET /auth/google/login | Public | | | | |
+| GET /auth/google/callback | Public | | | | |
+| POST /auth/google/exchange | Public | | | | |
 | GET /auth/me | Any authenticated | | | | |
 | POST /auth/api-keys | Any authenticated | | | | |
 | GET /auth/api-keys | Any authenticated | | | | |
@@ -233,11 +286,13 @@ All tool executions in AgentGuard are safe mocks:
 
 ## Known Security Limitations
 
-1. **No refresh tokens** — tokens expire and require full re-login
-2. **No MFA** — single-factor JWT authentication only
+1. **No refresh tokens** — tokens expire and require full re-login (email/password users must re-authenticate; Google users must re-run the OAuth flow)
+2. **No MFA** — single-factor authentication only (password or Google account)
 3. **No password reset** — no forgot-password or email verification flow
 4. **No HTTPS enforcement** — TLS termination is expected to be handled by the reverse proxy or hosting platform, not by the application
 5. **Default JWT secret** — the fallback `JWT_SECRET` in `config.py` is a hardcoded development value. Production deployments **must** set the `JWT_SECRET` environment variable to a unique, cryptographically random string.
 6. **API key plaintext in response** — the raw API key is returned in the `POST /auth/api-keys` response body. It's shown once and never stored, but it travels in the HTTP response — HTTPS is essential.
 7. **No IP allowlisting** — API keys are not bound to source IP addresses
 8. **Redis counter volatility** — rate limit and budget counters are in Redis memory. If Redis restarts without persistence, they reset.
+9. **OAuth consent screen testing restriction** — if the Google OAuth consent screen is in "Testing" mode (not Published), only explicitly added test users can complete the Google sign-in flow. Public users will see a 403 error from Google.
+10. **Exchange code in-process storage** — the OAuth exchange codes are stored in process memory, not Redis or a database. In a multi-process deployment (multiple Uvicorn workers), a code stored by one worker process cannot be consumed by a different process. Single-worker or single-instance deployments are not affected.

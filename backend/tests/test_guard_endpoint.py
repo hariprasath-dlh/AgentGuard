@@ -14,12 +14,9 @@ Tests POST /api/v1/guard/check against real Postgres and Redis:
  11. Mock handler exception does not crash endpoint, returns ALLOW, records error in output_payload
 """
 import uuid
-from unittest.mock import MagicMock, patch
-import pytest
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from unittest.mock import patch
 
-from app.core.seed import seed
+import pytest
 from app.models.agent import Agent
 from app.models.api_key import APIKey
 from app.models.audit_log import AuditLog
@@ -30,6 +27,8 @@ from app.models.tool import Tool
 from app.models.tool_request import ToolRequest
 from app.security.api_key import generate_api_key
 from app.services import mock_tools
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 
 @pytest.fixture
