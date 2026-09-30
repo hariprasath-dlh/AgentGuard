@@ -11,6 +11,7 @@ plaintext key EXACTLY ONCE in the response body. It is never stored in
 plaintext and never returned on any subsequent GET.
 """
 import uuid
+import json  # DELIBERATE_LINT_VIOLATION: unused import to prove CI catches it
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
