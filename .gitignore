@@ -73,3 +73,4 @@ test-results/
 docs/performance/*.json
 docs/performance/*.txt
 
+.neon

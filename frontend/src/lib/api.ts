@@ -1,14 +1,15 @@
 /**
  * AgentGuard Data Layer (Connected to real FastAPI backend).
  *
- * Dispatches API requests directly to the FastAPI REST endpoints at
- * http://localhost:8000/api/v1 using standard Bearer token authentication.
+ * Dispatches API requests directly to the FastAPI REST endpoints using
+ * standard Bearer token authentication.
  */
 
 export const API_BASE_URL =
-  typeof window !== "undefined" && (window as unknown as { __AGENTGUARD_API_URL__?: string }).__AGENTGUARD_API_URL__
+  typeof window !== "undefined" &&
+    (window as unknown as { __AGENTGUARD_API_URL__?: string }).__AGENTGUARD_API_URL__
     ? (window as unknown as { __AGENTGUARD_API_URL__?: string }).__AGENTGUARD_API_URL__!
-    : "http://localhost:8000/api/v1";
+    : import.meta.env["VITE_API_BASE_URL"] || "http://localhost:8000/api/v1";
 
 export class ApiError extends Error {
   status: number;
@@ -53,9 +54,11 @@ export async function api<T>(path: string, options: Options = {}): Promise<T> {
     method,
     headers,
   };
+
   if (body !== undefined) {
     fetchInit.body = JSON.stringify(body);
   }
+
   if (options.signal) {
     fetchInit.signal = options.signal;
   }
@@ -71,8 +74,10 @@ export async function api<T>(path: string, options: Options = {}): Promise<T> {
 
   if (!res.ok) {
     let errorMsg = `Request failed (${res.status})`;
+
     try {
       const errorJson = await res.json();
+
       if (Array.isArray(errorJson.detail)) {
         errorMsg = errorJson.detail
           .map((d: { msg?: string; message?: string }) => d.msg || d.message || JSON.stringify(d))
@@ -85,6 +90,7 @@ export async function api<T>(path: string, options: Options = {}): Promise<T> {
     } catch {
       // ignore non-json error bodies
     }
+
     throw new ApiError(errorMsg, res.status);
   }
 
@@ -238,11 +244,14 @@ export type ActivityItem = {
 /** Endpoints may return either a bare array or a paginated envelope. */
 export function asList<T>(payload: unknown): T[] {
   if (Array.isArray(payload)) return payload as T[];
+
   if (payload && typeof payload === "object") {
     const p = payload as Record<string, unknown>;
+
     for (const key of ["items", "results", "data", "logs", "activity", "requests"]) {
       if (Array.isArray(p[key])) return p[key] as T[];
     }
   }
+
   return [];
 }
