@@ -118,12 +118,13 @@ export function AppShell({ screen, children }: { screen: Screen; children: React
   return (
     <div className="flex min-h-screen">
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar px-4 py-6 md:flex">
-        <div className="px-2">
+        <div className="flex items-center gap-2 px-2">
+          <img src="/agentguard-logo.png" alt="AgentGuard logo" className="h-6 w-auto shrink-0" />
           <span className="font-display text-2xl tracking-tight text-brass">AgentGuard</span>
-          <p className="mt-1 text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
-            Control Plane
-          </p>
         </div>
+        <p className="mt-1 px-2 text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
+          Control Plane
+        </p>
 
         <div className="mt-9 flex flex-1 flex-col">
           <NavList role={user.role} pathname={pathname} />
@@ -164,8 +165,9 @@ export function AppShell({ screen, children }: { screen: Screen; children: React
               side="right"
               className="flex w-[17rem] flex-col border-sidebar-border bg-sidebar px-4 py-6"
             >
-              <SheetTitle className="px-2 font-display text-xl tracking-tight text-brass">
-                AgentGuard
+              <SheetTitle className="flex items-center gap-2 px-2">
+                <img src="/agentguard-logo.png" alt="AgentGuard logo" className="h-5 w-auto shrink-0" />
+                <span className="font-display text-xl tracking-tight text-brass">AgentGuard</span>
               </SheetTitle>
               <div className="mt-6 flex flex-1 flex-col overflow-y-auto">
                 <NavList
