@@ -1,0 +1,5 @@
+{
+  "name": "AgentGuard Dashboard",
+  "description": "AI Agent Security, Policy Guardrails, and Approvals Dashboard",
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
