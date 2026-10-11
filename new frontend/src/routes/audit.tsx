@@ -3,14 +3,22 @@ import { useEffect, useState } from "react";
 import { Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
-import { Button, CopyButton, Json, PageHead, Tag } from "@/components/kit";
+import { Button, Json, PageHead, Tag } from "@/components/kit";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { pageMeta } from "@/lib/meta";
 import { get, post } from "@/lib/api";
+import {
+  parseAuditVerification,
+  type AuditVerificationBackendResponse,
+  type ParsedVerification,
+} from "@/lib/audit-verifier";
 
 export const Route = createFileRoute("/audit")({
   head: () =>
-    pageMeta("Audit Vault", "SHA-256 hash-chained, tamper-evident ledger of every decision."),
+    pageMeta(
+      "Audit Vault",
+      "Tamper-evident, cryptographically chained audit log of every decision.",
+    ),
   component: () => (
     <AppShell>
       <Audit />
@@ -38,18 +46,11 @@ interface AuditListResp {
   items: AuditLog[];
 }
 
-interface VerifyResp {
-  valid: boolean;
-  checked: number;
-  broken_at_sequence: number | null;
-  message: string;
-}
-
 const short = (h: string) => (h ? `${h.slice(0, 8)}…${h.slice(-6)}` : "—");
 
 function Audit() {
   const [rows, setRows] = useState<AuditLog[]>([]);
-  const [result, setResult] = useState<VerifyResp | null>(null);
+  const [result, setResult] = useState<ParsedVerification | null>(null);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<AuditLog | null>(null);
 
@@ -63,12 +64,13 @@ function Audit() {
   const verify = async () => {
     setBusy(true);
     try {
-      const r = await post<VerifyResp>("/audit/verify");
+      const raw = await post<AuditVerificationBackendResponse>("/audit/verify");
+      const r = parseAuditVerification(raw);
       setResult(r);
-      if (r.valid) {
-        toast.success(`Chain verified — ${r.checked} records checked`);
+      if (r.isValid) {
+        toast.success(`Chain verified — ${r.totalRecords} records checked: ${r.message}`);
       } else {
-        toast.error(`Chain broken at sequence #${r.broken_at_sequence}`);
+        toast.error(`Chain broken at sequence #${r.brokenSequenceNumber}: ${r.message}`);
       }
     } catch (e) {
       toast.error((e as Error).message);
@@ -92,17 +94,20 @@ function Audit() {
       {result && (
         <div
           className={
-            result.valid
-              ? "mb-6 flex items-center gap-3 bg-teal px-5 py-4 text-teal-foreground"
-              : "mb-6 flex items-center gap-3 bg-deny px-5 py-4 text-ivory"
+            result.isValid
+              ? "mb-6 flex flex-col gap-1 bg-teal px-5 py-4 text-teal-foreground"
+              : "mb-6 flex flex-col gap-1 bg-deny px-5 py-4 text-ivory"
           }
         >
-          {result.valid ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
-          <span className="font-display font-semibold tracking-wide">
-            {result.valid
-              ? `CHAIN VALID & IMMUTABLE — ${result.checked} records`
-              : `CHAIN COMPROMISED — sequence #${result.broken_at_sequence}`}
-          </span>
+          <div className="flex items-center gap-3">
+            {result.isValid ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
+            <span className="font-display font-semibold tracking-wide">
+              {result.isValid
+                ? `CHAIN VALID & IMMUTABLE — ${result.totalRecords} records scanned`
+                : `CHAIN COMPROMISED — sequence #${result.brokenSequenceNumber}`}
+            </span>
+          </div>
+          <p className="pl-8 text-xs opacity-90">{result.message}</p>
         </div>
       )}
       <div className="overflow-x-auto border border-border bg-ivory">
@@ -123,7 +128,7 @@ function Audit() {
               <tr
                 key={r.id}
                 className={
-                  result && !result.valid && result.broken_at_sequence === r.sequence_number
+                  result && !result.isValid && result.brokenSequenceNumber === r.sequence_number
                     ? "bg-deny/10"
                     : "hover:bg-secondary/50"
                 }
@@ -139,11 +144,13 @@ function Audit() {
                 <td className="p-4">
                   <Tag v={r.decision as "ALLOW" | "DENY" | "PENDING"} />
                 </td>
-                <td className="mono p-4 text-xs text-muted-foreground">{short(r.prev_hash)}</td>
+                <td className="mono p-4 text-xs text-muted-foreground">
+                  {short(r.prev_hash)}
+                </td>
                 <td className="mono p-4 text-xs">{short(r.current_hash)}</td>
                 <td className="p-4 text-right">
                   <Button variant="ghost" size="sm" onClick={() => setOpen(r)}>
-                    Inspect
+                    View
                   </Button>
                 </td>
               </tr>
@@ -151,51 +158,50 @@ function Audit() {
             {!rows.length && (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                  No audit records yet.
+                  No audit log entries recorded yet.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-      <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
-        <DialogContent className="max-w-xl rounded-none border-border bg-ivory">
-          <DialogHeader>
-            <DialogTitle className="font-serif-display text-3xl">
-              Record #{open?.sequence_number}
-            </DialogTitle>
-          </DialogHeader>
-          {open && (
-            <div className="space-y-4 text-sm">
-              <dl className="space-y-2">
+
+      <Dialog open={Boolean(open)} onOpenChange={(o) => !o && setOpen(null)}>
+        {open && (
+          <DialogContent className="max-w-xl rounded-none border-border bg-ivory">
+            <DialogHeader>
+              <DialogTitle className="font-serif-display text-2xl">
+                Audit record #{String(open.sequence_number).padStart(4, "0")} · {open.event_type}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 border border-border bg-card p-4 text-xs">
                 <div>
-                  <dt className="eyebrow text-muted-foreground">Event type</dt>
-                  <dd>{open.event_type}</dd>
+                  <p className="eyebrow text-muted-foreground">Timestamp</p>
+                  <p className="mt-1">{new Date(open.created_at).toISOString()}</p>
                 </div>
                 <div>
-                  <dt className="eyebrow text-muted-foreground">Decision</dt>
-                  <dd>{open.decision}</dd>
+                  <p className="eyebrow text-muted-foreground">Decision</p>
+                  <p className="mt-1">
+                    <Tag v={open.decision as "ALLOW" | "DENY" | "PENDING"} />
+                  </p>
                 </div>
-                {open.tool_name && (
-                  <div>
-                    <dt className="eyebrow text-muted-foreground">Tool</dt>
-                    <dd>{open.tool_name}</dd>
-                  </div>
-                )}
-              </dl>
-              {open.payload && <Json data={open.payload} />}
-              <div>
-                <p className="eyebrow text-muted-foreground">Previous hash</p>
-                <p className="mono break-all text-xs">{open.prev_hash}</p>
+                <div>
+                  <p className="eyebrow text-muted-foreground">Previous SHA-256</p>
+                  <p className="mono mt-1 break-all">{open.prev_hash || "GENESIS (None)"}</p>
+                </div>
+                <div>
+                  <p className="eyebrow text-muted-foreground">Current SHA-256</p>
+                  <p className="mono mt-1 break-all">{open.current_hash}</p>
+                </div>
               </div>
               <div>
-                <p className="eyebrow text-muted-foreground">Current hash</p>
-                <p className="mono break-all text-xs">{open.current_hash}</p>
-                <CopyButton value={open.current_hash} label="Copy hash" />
+                <p className="eyebrow mb-2 text-muted-foreground">Payload data</p>
+                <Json data={open.payload} />
               </div>
             </div>
-          )}
-        </DialogContent>
+          </DialogContent>
+        )}
       </Dialog>
     </>
   );

@@ -4,7 +4,6 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  useRouterState,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
@@ -122,11 +121,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div key={pathname} className="page-enter">
+      <div className="page-enter">
         <Outlet />
       </div>
       <Toaster position="bottom-right" />

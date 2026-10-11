@@ -74,10 +74,10 @@ function BudgetCard({ b, agentName, onSaved }: { b: Budget; agentName: string; o
           e.preventDefault();
           setLoading(true);
           const body: Record<string, number | null> = {};
-          body.max_budget_per_day = f.max_budget_per_day !== "" ? Number(f.max_budget_per_day) : null;
-          body.max_budget_per_session = f.max_budget_per_session !== "" ? Number(f.max_budget_per_session) : null;
-          body.max_requests_per_minute = f.max_requests_per_minute !== "" ? Number(f.max_requests_per_minute) : null;
-          body.max_requests_per_day = f.max_requests_per_day !== "" ? Number(f.max_requests_per_day) : null;
+          body["max_budget_per_day"] = f.max_budget_per_day !== "" ? Number(f.max_budget_per_day) : null;
+          body["max_budget_per_session"] = f.max_budget_per_session !== "" ? Number(f.max_budget_per_session) : null;
+          body["max_requests_per_minute"] = f.max_requests_per_minute !== "" ? Number(f.max_requests_per_minute) : null;
+          body["max_requests_per_day"] = f.max_requests_per_day !== "" ? Number(f.max_requests_per_day) : null;
           try {
             await patch(`/budgets/${b.id}`, body);
             toast.success(`Limits updated for ${agentName}`);

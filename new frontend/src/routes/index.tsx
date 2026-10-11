@@ -254,14 +254,14 @@ function Home() {
               ))}
             </ol>
             <div className="mt-12 grid gap-4 sm:grid-cols-3">
-              {[
+              {([
                 ["ALLOW", "Required checks pass. The request is permitted to execute."],
                 ["PENDING", "Human approval is required. Execution waits for a decision."],
                 [
                   "DENY",
                   "A required check fails. The tool call is blocked and the reason is recorded.",
                 ],
-              ].map(([d, t]) => (
+              ] as const).map(([d, t]) => (
                 <div key={d} className="bg-ivory p-6">
                   <Tag v={d} />
                   <p className="mt-4 text-foreground">{t}</p>
@@ -285,7 +285,7 @@ function Home() {
               </p>
             </div>
             <ul className="lg:col-span-7">
-              {[
+              {([
                 ["Agents", "/agents", "Identities, API keys, kill switch"],
                 ["Tools", "/tools", "Registered endpoints and risk tiers"],
                 ["Permissions", "/permissions", "Agent × tool matrix"],
@@ -293,7 +293,7 @@ function Home() {
                 ["Budgets", "/budgets", "Spend and rate caps"],
                 ["Approvals", "/approvals", "Human-in-the-loop queue"],
                 ["Audit Vault", "/audit", "SHA-256 hash-chained ledger"],
-              ].map(([t, to, d]) => (
+              ] as const).map(([t, to, d]) => (
                 <li key={t}>
                   <Link
                     to={to}
@@ -369,11 +369,11 @@ function Home() {
               </h2>
               <div className="lg:col-span-7">
                 <div className="space-y-3">
-                  {[
+                  {([
                     ["Record 005", "DENY", "9c1e…b04a", "4f2d…7a91"],
                     ["Record 006", "DENY", "4f2d…7a91", "e81b…02cc"],
                     ["Record 007", "ALLOW", "e81b…02cc", "a7d3…5f10"],
-                  ].map(([id, d, p, h]) => (
+                  ] as const).map(([id, d, p, h]) => (
                     <div
                       key={id}
                       className="grid grid-cols-2 gap-3 border border-brown-foreground/15 p-4 text-sm sm:grid-cols-[6.5rem_5rem_1fr_1fr]"

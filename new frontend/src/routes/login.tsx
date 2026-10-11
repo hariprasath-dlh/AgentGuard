@@ -7,10 +7,12 @@ import { Button, Field, Input } from "@/components/kit";
 import { login, googleLoginUrl } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (s: Record<string, unknown>): { expired?: string; error?: string } => ({
-    expired: s.expired ? String(s.expired) : undefined,
-    error: s.error ? String(s.error) : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { expired?: string; error?: string } => {
+    const res: { expired?: string; error?: string } = {};
+    if (s["expired"]) res.expired = String(s["expired"]);
+    if (s["error"]) res.error = String(s["error"]);
+    return res;
+  },
   head: () => ({
     meta: [
       { title: "Sign in — AgentGuard" },
@@ -98,7 +100,7 @@ function Login() {
               aria-label={show ? "Hide password" : "Show password"}
               className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground"
             >
-              {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {show ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </button>
           </div>
         </Field>

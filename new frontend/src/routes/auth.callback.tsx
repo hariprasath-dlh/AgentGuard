@@ -1,13 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LogoMark } from "@/components/Logo";
 import { exchangeCode } from "@/lib/auth";
 
 export const Route = createFileRoute("/auth/callback")({
-  validateSearch: (s: Record<string, unknown>): { code?: string; error?: string } => ({
-    code: s.code ? String(s.code) : undefined,
-    error: s.error ? String(s.error) : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { code?: string; error?: string } => {
+    const res: { code?: string; error?: string } = {};
+    if (s["code"]) res.code = String(s["code"]);
+    if (s["error"]) res.error = String(s["error"]);
+    return res;
+  },
   head: () => ({
     meta: [
       { title: "Signing in — AgentGuard" },
@@ -21,22 +23,47 @@ function Callback() {
   const navigate = useNavigate();
   const { code, error } = Route.useSearch();
   const [msg, setMsg] = useState("Completing sign-in…");
+  const processedRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (error) {
       setMsg(`Sign-in failed: ${error}`);
-      const t = setTimeout(() => navigate({ to: "/login" }), 2500);
-      return () => clearTimeout(t);
+      timerRef.current = setTimeout(() => navigate({ to: "/login" }), 2500);
+      return;
     }
+
     if (!code) {
       navigate({ to: "/login" });
       return;
     }
+
+    // Guard against React StrictMode double-execution on mount
+    if (processedRef.current) {
+      return;
+    }
+    processedRef.current = true;
+
     exchangeCode(code)
-      .then(() => navigate({ to: "/dashboard" }))
+      .then(() => {
+        navigate({ to: "/dashboard" });
+      })
       .catch((err: Error) => {
+        // If a valid session already exists (e.g. concurrent exchange succeeded), proceed to dashboard
+        if (typeof window !== "undefined" && localStorage.getItem("ag_token")) {
+          navigate({ to: "/dashboard" });
+          return;
+        }
         setMsg(`Sign-in failed: ${err.message}`);
-        setTimeout(() => navigate({ to: "/login" }), 2500);
+        timerRef.current = setTimeout(() => navigate({ to: "/login" }), 2500);
       });
   }, [code, error, navigate]);
 

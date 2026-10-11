@@ -93,7 +93,7 @@ function Register() {
               aria-label={show ? "Hide password" : "Show password"}
               className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-muted-foreground"
             >
-              {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {show ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </button>
           </div>
         </Field>

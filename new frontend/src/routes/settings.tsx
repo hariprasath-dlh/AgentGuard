@@ -61,7 +61,10 @@ function Settings() {
   }, []);
 
   const createKey = async () => {
-    if (!keyName.trim()) return toast.error("Key name is required");
+    if (!keyName.trim()) {
+      toast.error("Key name is required");
+      return;
+    }
     try {
       const res = await post<NewKeyResp>("/auth/api-keys", { name: keyName });
       setNewKey({ name: res.name, key: res.api_key });
@@ -140,14 +143,16 @@ function Settings() {
             </div>
           )}
           <div className="mt-4 flex gap-3">
-            <Field label="Key name" htmlFor="kn" className="flex-1">
-              <Input
-                id="kn"
-                placeholder="my-service-key"
-                value={keyName}
-                onChange={(e) => setKeyName(e.target.value)}
-              />
-            </Field>
+            <div className="flex-1">
+              <Field label="Key name" htmlFor="kn">
+                <Input
+                  id="kn"
+                  placeholder="my-service-key"
+                  value={keyName}
+                  onChange={(e) => setKeyName(e.target.value)}
+                />
+              </Field>
+            </div>
             <Button className="mt-7" onClick={createKey}>
               Generate
             </Button>

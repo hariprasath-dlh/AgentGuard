@@ -113,7 +113,7 @@ export async function appendAudit(
   reason: string,
   payload: Record<string, unknown>,
 ) {
-  const last = state.audit.reduce((m, r) => (r.id > m.id ? r : m), state.audit[0]);
+  const last = state.audit.length ? state.audit.reduce((m, r) => (r.id > m.id ? r : m)) : undefined;
   const base = {
     id: (last?.id ?? 0) + 1,
     ts: new Date().toISOString(),

@@ -5,6 +5,7 @@ import {
   Bot,
   CheckSquare,
   Grid3x3,
+  Lock,
   LogOut,
   Menu,
   PanelLeftClose,
@@ -18,21 +19,29 @@ import {
   X,
 } from "lucide-react";
 import { Logo, LogoMark } from "./Logo";
-import { getSession, logout, type Session } from "@/lib/auth";
+import { bootstrapSession, getSession, logout, type Session } from "@/lib/auth";
+import { canRead, landingRoute, type Role, type Screen } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
 import { get } from "@/lib/api";
 
-const nav = [
-  { to: "/dashboard", label: "Dashboard", icon: Activity },
-  { to: "/agents", label: "Agents", icon: Bot },
-  { to: "/tools", label: "Tools", icon: Wrench },
-  { to: "/permissions", label: "Permissions", icon: Grid3x3 },
-  { to: "/policies", label: "Policies", icon: Scale },
-  { to: "/budgets", label: "Budgets", icon: Wallet },
-  { to: "/approvals", label: "Approvals", icon: CheckSquare },
-  { to: "/audit", label: "Audit Vault", icon: Vault },
-  { to: "/settings", label: "Settings", icon: Settings },
-] as const;
+interface NavItem {
+  to: string;
+  label: string;
+  icon: typeof Activity;
+  screen: Screen;
+}
+
+const nav: NavItem[] = [
+  { to: "/dashboard", label: "Dashboard", icon: Activity, screen: "dashboard" },
+  { to: "/agents", label: "Agents", icon: Bot, screen: "agents" },
+  { to: "/tools", label: "Tools", icon: Wrench, screen: "tools" },
+  { to: "/permissions", label: "Permissions", icon: Grid3x3, screen: "agents" },
+  { to: "/policies", label: "Policies", icon: Scale, screen: "policies" },
+  { to: "/budgets", label: "Budgets", icon: Wallet, screen: "budgets" },
+  { to: "/approvals", label: "Approvals", icon: CheckSquare, screen: "approvals" },
+  { to: "/audit", label: "Audit Vault", icon: Vault, screen: "audit" },
+  { to: "/settings", label: "Settings", icon: Settings, screen: "settings" },
+];
 
 let cachedSession: Session | null = null;
 
@@ -43,19 +52,48 @@ export function DemoBanner() {
 export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const [session, setSession] = useState<Session | null>(cachedSession);
+  const [session, setSession] = useState<Session | null>(() => cachedSession ?? getSession().session);
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [pending, setPending] = useState(0);
 
   useEffect(() => {
-    const { session, expired } = getSession();
-    if (!session) {
+    let active = true;
+    const { session: localSession, expired } = getSession();
+
+    if (!localSession) {
+      cachedSession = null;
+      setSession(null);
       navigate({ to: "/login", search: expired ? { expired: "1" } : {} });
       return;
     }
-    cachedSession = session;
-    setSession(session);
+
+    cachedSession = localSession;
+    setSession(localSession);
+
+    // Bootstrap with live server state: sync role & org from /auth/me
+    bootstrapSession().then((freshSession) => {
+      if (!active) return;
+      if (!freshSession) {
+        cachedSession = null;
+        setSession(null);
+        navigate({ to: "/login", search: { expired: "1" } });
+        return;
+      }
+      cachedSession = freshSession;
+      setSession(freshSession);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!session || !canRead(session.role as Role, "approvals")) {
+      setPending(0);
+      return;
+    }
 
     let active = true;
     const fetchPending = () => {
@@ -72,7 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       active = false;
       clearInterval(interval);
     };
-  }, [navigate, path]);
+  }, [session, path]);
 
   useEffect(() => setOpen(false), [path]);
 
@@ -82,16 +120,21 @@ export function AppShell({ children }: { children: ReactNode }) {
     navigate({ to: "/login" });
   };
 
-  if (!session)
+  if (!session) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <LogoMark className="h-10 w-10 animate-pulse" />
       </div>
     );
+  }
+
+  const currentNav = nav.find((n) => n.to === path);
+  const hasAccess = !currentNav || canRead(session.role as Role, currentNav.screen);
+  const visibleNav = nav.filter((n) => canRead(session.role as Role, n.screen));
 
   const links = (compact: boolean) => (
     <nav className="flex flex-1 flex-col gap-0.5" aria-label="Control plane">
-      {nav.map(({ to, label, icon: Icon }) => {
+      {visibleNav.map(({ to, label, icon: Icon }) => {
         const active = path === to;
         return (
           <Link
@@ -222,7 +265,28 @@ export function AppShell({ children }: { children: ReactNode }) {
           {foot(collapsed)}
         </aside>
         <main className="min-w-0 flex-1 px-4 py-8 sm:px-6 md:px-10 lg:py-12 xl:px-14">
-          <div className="mx-auto max-w-[1400px]">{children}</div>
+          <div className="mx-auto max-w-[1400px]">
+            {hasAccess ? (
+              children
+            ) : (
+              <div className="rounded-lg border border-border bg-card p-8 text-center sm:p-12">
+                <Lock className="mx-auto h-10 w-10 text-muted-foreground" />
+                <h2 className="mt-4 text-xl font-semibold">Access Restricted</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Your role (<span className="font-mono font-medium text-foreground">{session.role}</span>) does not have permission to access the{" "}
+                  <span className="font-medium text-foreground">{currentNav?.label}</span> screen.
+                </p>
+                <div className="mt-6">
+                  <Link
+                    to={landingRoute(session.role as Role)}
+                    className="inline-flex items-center gap-2 rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                  >
+                    Go to accessible screen
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
           <p className="mx-auto mt-16 flex max-w-[1400px] items-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5" /> AgentGuard · Runtime Governance Control Plane
           </p>

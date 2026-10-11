@@ -18,20 +18,41 @@ export const Route = createFileRoute("/policies")({
   ),
 });
 
+type PolicyType = "RISK" | "PARAM_DENYLIST";
+
 interface Policy {
   id: string;
   name: string;
   description: string;
-  policy_type: string;
+  policy_type: PolicyType;
   rules: Record<string, unknown>;
   is_active: boolean;
 }
 
-const template = JSON.stringify(
-  { allowed_actions: ["read"], blocked_actions: ["delete"] },
-  null,
-  2,
-);
+const TEMPLATES: Record<PolicyType, string> = {
+  RISK: JSON.stringify(
+    {
+      LOW: "ALLOW",
+      MEDIUM: "ALLOW",
+      HIGH: "HITL",
+      CRITICAL: "DENY",
+    },
+    null,
+    2,
+  ),
+  PARAM_DENYLIST: JSON.stringify(
+    {
+      patterns: [
+        "(?i)\\bdrop\\s+table\\b",
+        "(?i)\\bdelete\\s+from\\b",
+        "(?i)\\btruncate\\s+table\\b",
+        "(?i)\\brm\\s+-rf\\b",
+      ],
+    },
+    null,
+    2,
+  ),
+};
 
 function Policies() {
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -46,15 +67,34 @@ function Policies() {
 
   useEffect(() => { load(); }, []);
 
+  const openNew = (type: PolicyType = "RISK") => {
+    setErr("");
+    setEdit({
+      name: type === "RISK" ? "Risk Level Governance" : "Prohibited Parameters Denylist",
+      description:
+        type === "RISK"
+          ? "Enforces deterministic ALLOW, HITL or DENY actions per risk level."
+          : "Blocks destructive SQL injection and shell commands in payloads.",
+      policy_type: type,
+      rulesText: TEMPLATES[type],
+    });
+  };
+
   const save = async () => {
     setErr("");
     if (!edit?.name?.trim()) return setErr("Name is required.");
+    const policyType: PolicyType = edit.policy_type === "PARAM_DENYLIST" ? "PARAM_DENYLIST" : "RISK";
+
     let rules: Record<string, unknown>;
     try {
       rules = JSON.parse(edit.rulesText ?? "{}");
+      if (typeof rules !== "object" || rules === null || Array.isArray(rules)) {
+        return setErr("Rules must be a valid JSON object.");
+      }
     } catch {
-      return setErr("Rules must be valid JSON.");
+      return setErr("Rules must be valid JSON syntax.");
     }
+
     setLoading(true);
     try {
       if (edit.id) {
@@ -68,7 +108,7 @@ function Policies() {
         await post("/policies", {
           name: edit.name,
           description: edit.description ?? "",
-          policy_type: "CUSTOM",
+          policy_type: policyType,
           rules,
           is_active: true,
         });
@@ -106,43 +146,55 @@ function Policies() {
   return (
     <>
       <PageHead
-        num="05 · Governance"
+        num="05 · Rules"
         title="Policies"
-        lede="Business rules that live in the execution path, not in a document."
+        lede="Deterministic rules evaluated by the policy engine on every tool request."
         action={
-          <Button onClick={() => setEdit({ rulesText: template })}>
-            <Plus className="h-4 w-4" /> New policy
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => openNew("RISK")}>
+              <Plus className="h-4 w-4" /> Add Risk Policy
+            </Button>
+            <Button variant="ghost" onClick={() => openNew("PARAM_DENYLIST")}>
+              <Plus className="h-4 w-4" /> Add Denylist Policy
+            </Button>
+          </div>
         }
       />
       {!policies.length ? (
-        <Empty>No policies yet.</Empty>
+        <Empty>No policies configured. Add a RISK or PARAM_DENYLIST policy.</Empty>
       ) : (
         <div className="space-y-4">
-          {policies.map((p, i) => (
+          {policies.map((p) => (
             <article
               key={p.id}
               className="grid gap-6 border border-border bg-ivory p-6 lg:grid-cols-12"
             >
-              <div className="lg:col-span-5">
+              <div className="space-y-4 lg:col-span-5">
                 <div className="flex items-center gap-3">
-                  <span className="font-serif-display text-3xl text-primary">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <Tag v={p.is_active ? "ACTIVE" : "INACTIVE"} />
+                  <Tag v={p.policy_type} />
+                  <span className="mono text-xs text-muted-foreground">{p.policy_type}</span>
                 </div>
-                <h3 className="mt-2 font-serif-display text-3xl">{p.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{p.description}</p>
-                <div className="mt-6 flex flex-wrap items-center gap-2">
-                  <label className="mr-3 flex items-center gap-2 text-sm">
-                    <Switch checked={p.is_active} onCheckedChange={() => toggleActive(p)} />
-                    Active
-                  </label>
+                <div>
+                  <h3 className="font-serif-display text-2xl">{p.name}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{p.description}</p>
+                </div>
+                <div className="flex items-center gap-2 pt-2 text-xs">
+                  <Switch
+                    checked={p.is_active}
+                    onCheckedChange={() => toggleActive(p)}
+                    aria-label="Toggle policy enforcement"
+                  />
+                  <span>{p.is_active ? "Enforcing" : "Disabled"}</span>
+                </div>
+                <div className="flex gap-2 pt-4">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      setEdit({ ...p, rulesText: JSON.stringify(p.rules, null, 2) })
+                      setEdit({
+                        ...p,
+                        rulesText: JSON.stringify(p.rules, null, 2),
+                      })
                     }
                   >
                     <Pencil className="h-3.5 w-3.5" /> Edit
@@ -181,6 +233,25 @@ function Policies() {
               save();
             }}
           >
+            <Field label="Policy Type" htmlFor="pt">
+              <select
+                id="pt"
+                disabled={Boolean(edit?.id)}
+                value={edit?.policy_type ?? "RISK"}
+                onChange={(e) => {
+                  const type = e.target.value as PolicyType;
+                  setEdit((prev) => ({
+                    ...prev,
+                    policy_type: type,
+                    rulesText: TEMPLATES[type],
+                  }));
+                }}
+                className="w-full border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="RISK">RISK (Risk Level to Decision Mapping)</option>
+                <option value="PARAM_DENYLIST">PARAM_DENYLIST (Regex Payload Patterns)</option>
+              </select>
+            </Field>
             <Field label="Name" htmlFor="pn">
               <Input
                 id="pn"
@@ -199,19 +270,21 @@ function Policies() {
               <textarea
                 id="pc"
                 rows={8}
-                className={textareaCls}
                 value={edit?.rulesText ?? ""}
                 onChange={(e) => setEdit({ ...edit, rulesText: e.target.value })}
+                className={textareaCls}
+                placeholder="{}"
               />
             </Field>
-            {err && (
-              <p role="alert" className="text-sm text-deny">
-                {err}
-              </p>
-            )}
-            <Button type="submit" className="w-full" disabled={loading}>
-              Save policy
-            </Button>
+            {err && <p className="text-sm text-deny">{err}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setEdit(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving…" : "Save policy"}
+              </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

@@ -50,7 +50,7 @@ describe("Core Governance Engine Workflows", () => {
     });
 
     it("toggles agent status as emergency kill switch", () => {
-      const agentId = seedAgents[0].id;
+      const agentId = seedAgents[0]!.id;
 
       // Suspend / kill switch
       setDemo((s) => ({
@@ -105,7 +105,7 @@ describe("Core Governance Engine Workflows", () => {
     });
 
     it("supports retiring and reactivating tools", () => {
-      const toolId = seedTools[0].id;
+      const toolId = seedTools[0]!.id;
 
       setDemo((s) => ({
         ...s,
@@ -223,9 +223,10 @@ describe("Core Governance Engine Workflows", () => {
       expect(updatedApproval?.note).toBe(reviewerNote);
 
       const latestAudit = currentState.audit[currentState.audit.length - 1];
-      expect(latestAudit.decision).toBe("ALLOW");
-      expect(latestAudit.agentId).toBe(pendingItem.agentId);
-      expect(latestAudit.reason).toContain("Approved by reviewer");
+      expect(latestAudit).toBeDefined();
+      expect(latestAudit!.decision).toBe("ALLOW");
+      expect(latestAudit!.agentId).toBe(pendingItem.agentId);
+      expect(latestAudit!.reason).toContain("Approved by reviewer");
     });
 
     it("denies pending request and appends DENY audit record", async () => {
@@ -267,7 +268,8 @@ describe("Core Governance Engine Workflows", () => {
       expect(updated?.status).toBe("DENIED");
 
       const latestAudit = currentState.audit[currentState.audit.length - 1];
-      expect(latestAudit.decision).toBe("DENY");
+      expect(latestAudit).toBeDefined();
+      expect(latestAudit!.decision).toBe("DENY");
     });
   });
 

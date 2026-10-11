@@ -10,6 +10,16 @@ export interface Session {
   expiresAt: number;
 }
 
+export interface UserResponse {
+  id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  organization_id: string;
+  organization_name: string;
+  organization_slug: string;
+}
+
 const KEY = "ag_token";
 const SESSION_KEY = "ag_session";
 const TTL = 1000 * 60 * 60 * 8;
@@ -31,9 +41,11 @@ export function getSession(): { session: Session | null; expired: boolean } {
   }
 }
 
-function storeSession(s: Omit<Session, "expiresAt">): Session {
-  const session = { ...s, expiresAt: Date.now() + TTL };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+export function storeSession(s: Omit<Session, "expiresAt">): Session {
+  const session: Session = { ...s, expiresAt: Date.now() + TTL };
+  if (typeof window !== "undefined") {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  }
   return session;
 }
 
@@ -43,22 +55,16 @@ interface TokenResponse {
   expires_in: number;
 }
 
-interface UserResponse {
-  id: string;
-  email: string;
-  full_name: string;
-  role: string;
-  organization_id: string;
-  organization_name: string;
-  organization_slug: string;
-}
-
 export async function login(email: string, password: string, org: string): Promise<Session> {
   const body: Record<string, string> = { email, password };
-  if (org.trim()) body.organization_slug = org.trim();
+  if (org.trim()) {
+    body["organization_slug"] = org.trim();
+  }
 
   const tok = await post<TokenResponse>("/auth/login", body);
-  localStorage.setItem(KEY, tok.access_token);
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEY, tok.access_token);
+  }
 
   const me = await get<UserResponse>("/auth/me");
   return storeSession({
@@ -92,7 +98,9 @@ export async function register(u: {
 
 export async function exchangeCode(code: string): Promise<Session> {
   const tok = await post<TokenResponse>("/auth/google/exchange", { code });
-  localStorage.setItem(KEY, tok.access_token);
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEY, tok.access_token);
+  }
   const me = await get<UserResponse>("/auth/me");
   return storeSession({
     name: me.full_name ?? me.email,
@@ -104,12 +112,36 @@ export async function exchangeCode(code: string): Promise<Session> {
   });
 }
 
+export async function bootstrapSession(): Promise<Session | null> {
+  if (typeof window === "undefined") return null;
+  const currentToken = localStorage.getItem(KEY);
+  if (!currentToken) return null;
+
+  try {
+    const me = await get<UserResponse>("/auth/me");
+    return storeSession({
+      name: me.full_name ?? me.email,
+      email: me.email,
+      org: me.organization_slug,
+      orgName: me.organization_name,
+      role: me.role,
+      userId: me.id,
+    });
+  } catch {
+    logout();
+    return null;
+  }
+}
+
 export function googleLoginUrl(): string {
-  const frontendCallback = encodeURIComponent(`${window.location.origin}/auth/callback`);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const frontendCallback = encodeURIComponent(`${origin}/auth/callback`);
   return `${BASE}/api/v1/auth/google/login?redirect_target=${frontendCallback}`;
 }
 
 export function logout() {
-  localStorage.removeItem(KEY);
-  localStorage.removeItem(SESSION_KEY);
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(SESSION_KEY);
+  }
 }

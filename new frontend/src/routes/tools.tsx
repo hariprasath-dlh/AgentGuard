@@ -40,7 +40,10 @@ function Tools() {
   useEffect(() => { load(); }, []);
 
   const save = async () => {
-    if (!edit?.name?.trim()) return toast.error("Name is required");
+    if (!edit?.name?.trim()) {
+      toast.error("Name is required");
+      return;
+    }
     setLoading(true);
     try {
       if (edit.id) {
