@@ -46,9 +46,32 @@ app = FastAPI(
     version="0.1.0",
 )
 
+def _normalize_cors_origins(raw: str) -> list[str]:
+    """Parse and normalize configured CORS origins.
+
+    Strips whitespace, surrounding quotes/brackets, and trailing slashes so
+    preflight exact-match comparisons succeed against RFC 6454 browser Origin headers.
+    """
+    raw = raw.strip()
+    if not raw:
+        return []
+    if raw.startswith("[") and raw.endswith("]"):
+        try:
+            items = json.loads(raw)
+            return [str(item).strip().strip("'\"").rstrip("/") for item in items if str(item).strip()]
+        except (ValueError, TypeError):
+            pass
+    origins: list[str] = []
+    for part in raw.replace("\n", ",").split(","):
+        cleaned = part.strip().strip("'\"[]").rstrip("/")
+        if cleaned:
+            origins.append(cleaned)
+    return origins
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()],
+    allow_origins=_normalize_cors_origins(settings.CORS_ORIGINS),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
